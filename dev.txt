@@ -5,3 +5,29 @@ git init
 
 DONE
 
+
+
+https://supabase.com/docs/guides/getting-started/quickstarts/vue
+
+
+.env.local
+
+SUPABASE_URL=https://opdksxeczkuxjvwflmga.supabase.co
+SUPABASE_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im9wZGtzeGVjemt1eGp2d2ZsbWdhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTQ5MDAzMjcsImV4cCI6MjA3MDQ3NjMyN30.MMAiM1adD2_7FzPfGmcLb9KqSBky6BFXVChAUEVXD3Q
+        
+
+supabase.js
+
+import { createClient } from "@supabase/supabase-js";
+
+const supabaseUrl = process.env.SUPABASE_URL;
+const supabaseKey = process.env.SUPABASE_KEY;
+
+export const supabase = createClient(supabaseUrl, supabaseKey);
+
+The supabase library is in:
+App.vue
+       
+ import { supabase } from './components/supabase'
+
+</script>
