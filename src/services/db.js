@@ -2,15 +2,30 @@
 import { supabase } from '../supabase'
 
 // Add a new drink log (with optional contexts)
+// Automatically includes the current user's ID to satisfy RLS policy
 export async function addDrinkLog(context) {
+  // Fetch current authenticated user
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    throw new Error('User not authenticated')
+  }
+
+  const insertData = {
+    user_id: user.id, // Required for RLS: must match auth.uid()
+    ...context // Spread optional contexts (location, company, etc.)
+  }
+
   const { data, error } = await supabase
     .from('drink_logs')
-    .insert([{ ...context }]) // user_id auto-set by RLS/policy
+    .insert([insertData])
+    .select() // Optionally select to return the inserted row
+
   if (error) throw error
   return data
 }
 
 // Fetch today's drink count (number of logs today)
+// RLS automatically filters to user's own logs
 export async function getTodayDrinkCount() {
   const today = new Date().toISOString().split('T')[0]
   const { data, error } = await supabase
@@ -23,6 +38,7 @@ export async function getTodayDrinkCount() {
 }
 
 // Fetch historical daily counts (for graph, last 30 days)
+// RLS automatically filters to user's own logs
 export async function getHistoricalCounts(days = 30) {
   const endDate = new Date()
   const startDate = new Date(endDate)
@@ -55,6 +71,7 @@ export async function getHistoricalCounts(days = 30) {
 }
 
 // Fetch all contexts for analysis (frequencies)
+// RLS automatically filters to user's own logs
 export async function getContextFrequencies() {
   const { data, error } = await supabase
     .from('drink_logs')
@@ -75,6 +92,7 @@ export async function getContextFrequencies() {
 }
 
 // Reset daily count (delete today's logs)
+// RLS automatically limits to user's own logs
 export async function resetTodayLogs() {
   const today = new Date().toISOString().split('T')[0]
   const { error } = await supabase
