@@ -9,8 +9,9 @@
     <div class="ai-advice-section">
       <h2>Grok AI Advice</h2>
       <p v-if="aiLoading">Loading AI advice...</p>
-      <p v-else-if="aiError">{{ aiError }}</p>
+      <p v-else-if="aiError" class="error">{{ aiError }}</p>
       <p v-else>{{ aiAdvice }}</p>
+      <button v-if="aiError" @click="retryAiAdvice">Retry AI Advice</button>
     </div>
     <button @click="goToMain">Back to Tracker</button>
     <button @click="handleLogout">Logout</button>
@@ -18,7 +19,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Chart from 'chart.js/auto'
 import { getHistoricalCounts, getContextFrequencies, getAllDrinkLogs } from '../services/db'
@@ -35,8 +36,8 @@ const aiAdvice = ref('')
 const aiLoading = ref(true)
 const aiError = ref('')
 
-// Fetch data and render chart/advice on mount
-onMounted(async () => {
+// Fetch data and render chart/advice
+async function loadData() {
   try {
     const counts = await getHistoricalCounts(30) // Last 30 days
     renderChart(counts)
@@ -44,16 +45,26 @@ onMounted(async () => {
 
     // Fetch all logs and get Grok AI advice
     aiLoading.value = true
+    aiError.value = ''
     const logs = await getAllDrinkLogs()
+    console.log('Sending logs to Grok:', logs); // Debug: inspect data
     const aiResponse = await getGrokAdvice(logs)
     aiAdvice.value = aiResponse
   } catch (err) {
     console.error('Error loading dashboard data:', err)
-    aiError.value = 'Failed to load AI advice.'
+    aiError.value = `Failed to load AI advice: ${err.message}`
   } finally {
     aiLoading.value = false
   }
-})
+}
+
+// Retry AI advice on button click
+async function retryAiAdvice() {
+  await loadData();
+}
+
+// Load data on mount
+loadData();
 
 // Render bar chart with daily counts
 function renderChart(counts) {
@@ -108,7 +119,7 @@ function goToMain() {
 async function handleLogout() {
   try {
     await logout()
-    router.push('/') // Redirect to main tracker; router guard handles login redirect if needed
+    router.push('/') // Redirect to main tracker; router guard handles login redirect
   } catch (err) {
     console.error('Error logging out:', err)
   }
@@ -121,5 +132,17 @@ async function handleLogout() {
 }
 .advice-section, .ai-advice-section {
   margin-top: 1rem;
+}
+.error {
+  color: #e74c3c;
+}
+button {
+  background: #4a90e2;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  margin: 0.5rem;
+  cursor: pointer;
+  border-radius: 4px;
 }
 </style>
