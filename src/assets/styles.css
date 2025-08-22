@@ -1,0 +1,84 @@
+/* Global CSS file - Mobile-first, responsive design */
+
+/* Base styles (mobile) */
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f0f8ff; /* Soft blue for compassionate feel */
+  color: #333;
+  line-height: 1.5;
+}
+
+h1, h2 {
+  color: #4a90e2; /* Calming blue */
+}
+
+button {
+  background: #4a90e2;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  margin: 0.5rem;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+input, select {
+  width: 100%;
+  padding: 0.5rem;
+  margin: 0.5rem 0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+form {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Flex for containers */
+.login-container, .main-container, .dashboard-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem;
+}
+
+/* Chart responsive */
+canvas {
+  max-width: 100%;
+  height: auto;
+}
+
+/* Message styles */
+.success {
+  color: #4a90e2;
+  margin-top: 1rem;
+}
+
+.error {
+  color: #e74c3c;
+  margin-top: 1rem;
+}
+
+/* Media queries for larger screens (tablet/desktop) */
+@media (min-width: 768px) {
+  .login-container, .main-container, .dashboard-container {
+    max-width: 600px;
+    margin: auto;
+  }
+
+  button {
+    padding: 0.75rem 1.5rem;
+  }
+
+  form {
+    max-width: 400px;
+  }
+}
+
+@media (min-width: 1024px) {
+  .dashboard-container {
+    max-width: 800px;
+  }
+}
