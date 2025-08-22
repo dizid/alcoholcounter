@@ -1,6 +1,5 @@
-
 // Netlify serverless function to proxy Grok AI API calls (hides API key)
-// Enhanced with detailed logging for request body and API response issues
+// Enhanced with token optimization and empty content handling
 exports.handler = async (event) => {
   // Log the full event for debugging
   console.log('Raw event:', JSON.stringify(event, null, 2));
@@ -63,11 +62,11 @@ exports.handler = async (event) => {
     // System prompt for Grok
     const systemPrompt = 'You are a professional addiction therapist. Give advice based on the users drinking habits and other submitted data.';
 
-    // User message with data
-    const userMessage = `Here is the user data: ${JSON.stringify(userData)}`;
+    // User message with summarized data
+    const userMessage = `Here is the summarized user data: Historical daily drink counts (last 30 days): ${JSON.stringify(userData.historicalCounts)}. Context frequencies: ${JSON.stringify(userData.contextFrequencies)}`;
 
     // Grok API request
-    console.log('Making Grok API request with userData:', userData);
+    console.log('Making Grok API request with summarized userData:', userData);
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -81,7 +80,7 @@ exports.handler = async (event) => {
           { role: 'user', content: userMessage },
         ],
         temperature: 0.7,
-        max_tokens: 500,
+        max_tokens: 1000, // Increased to allow longer responses
       }),
     });
 
@@ -101,17 +100,23 @@ exports.handler = async (event) => {
       throw new Error(data.error?.message || `Grok API error: ${response.status}`);
     }
 
+    // Log token usage
+    console.log('Token usage:', data.usage);
+
     // Validate response structure
-    if (!data.choices || !data.choices[0] || !data.choices[0].message || !data.choices[0].message.content) {
+    if (!data.choices || !data.choices[0] || !data.choices[0].message) {
       console.error('Invalid Grok API response structure:', JSON.stringify(data, null, 2));
       return {
         statusCode: 500,
-        body: JSON.stringify({ error: `Failed to get AI advice: Unexpected response format from Grok API: ${JSON.stringify(data)}` }),
+        body: JSON.stringify({ error: `Failed to get AI advice: Invalid response structure: ${JSON.stringify(data)}` }),
       };
     }
 
-    // Extract AI response
-    const aiAdvice = data.choices[0].message.content;
+    // Handle empty content
+    const aiAdvice = data.choices[0].message.content || 'No specific advice generated; please try again with fewer logs.';
+    if (!data.choices[0].message.content) {
+      console.warn('Grok API returned empty content, likely due to token limit:', data);
+    }
 
     return {
       statusCode: 200,

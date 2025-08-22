@@ -22,7 +22,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import Chart from 'chart.js/auto'
-import { getHistoricalCounts, getContextFrequencies, getAllDrinkLogs } from '../services/db'
+import { getHistoricalCounts, getContextFrequencies } from '../services/db'
 import { getGrokAdvice } from '../services/grok'
 import { logout } from '../services/auth'
 
@@ -41,14 +41,15 @@ async function loadData() {
   try {
     const counts = await getHistoricalCounts(30) // Last 30 days
     renderChart(counts)
+    const freq = await getContextFrequencies() // Frequencies for contexts
     await generateAdvice(counts) // Rule-based advice
 
-    // Fetch all logs and get Grok AI advice
+    // Prepare summarized user data (historical counts and context frequencies)
     aiLoading.value = true
     aiError.value = ''
-    const logs = await getAllDrinkLogs()
-    console.log('Sending logs to Grok:', logs); // Debug: inspect data
-    const aiResponse = await getGrokAdvice(logs)
+    const userData = { historicalCounts: counts, contextFrequencies: freq }
+    console.log('Sending summarized data to Grok:', userData); // Debug: inspect data
+    const aiResponse = await getGrokAdvice(userData)
     aiAdvice.value = aiResponse
   } catch (err) {
     console.error('Error loading dashboard data:', err)
