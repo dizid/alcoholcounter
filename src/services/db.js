@@ -102,3 +102,15 @@ export async function resetTodayLogs() {
     .lte('created_at', `${today}T23:59:59Z`)
   if (error) throw error
 }
+
+// Fetch all drink logs for the user (for AI analysis)
+// RLS automatically filters to user's own logs
+export async function getAllDrinkLogs() {
+  const { data, error } = await supabase
+    .from('drink_logs')
+    .select('*')
+    .order('created_at', { ascending: false }); // Sort by date descending for recency
+
+  if (error) throw error
+  return data;
+}

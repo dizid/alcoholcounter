@@ -3,8 +3,14 @@
     <h1>Progress Dashboard</h1>
     <canvas id="barChart" ref="chartRef"></canvas>
     <div class="advice-section">
-      <h2>Personalized Advice</h2>
+      <h2>Personalized Advice (Rule-Based)</h2>
       <p>{{ advice }}</p>
+    </div>
+    <div class="ai-advice-section">
+      <h2>Grok AI Advice</h2>
+      <p v-if="aiLoading">Loading AI advice...</p>
+      <p v-else-if="aiError">{{ aiError }}</p>
+      <p v-else>{{ aiAdvice }}</p>
     </div>
     <button @click="goToMain">Back to Tracker</button>
     <button @click="handleLogout">Logout</button>
@@ -15,7 +21,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import Chart from 'chart.js/auto'
-import { getHistoricalCounts, getContextFrequencies } from '../services/db'
+import { getHistoricalCounts, getContextFrequencies, getAllDrinkLogs } from '../services/db'
+import { getGrokAdvice } from '../services/grok'
 import { logout } from '../services/auth'
 
 // Initialize router for navigation
@@ -24,15 +31,27 @@ const router = useRouter()
 // Reactive state for chart and advice
 const chartRef = ref(null)
 const advice = ref('Loading advice...')
+const aiAdvice = ref('')
+const aiLoading = ref(true)
+const aiError = ref('')
 
 // Fetch data and render chart/advice on mount
 onMounted(async () => {
   try {
     const counts = await getHistoricalCounts(30) // Last 30 days
     renderChart(counts)
-    generateAdvice(counts)
+    await generateAdvice(counts) // Rule-based advice
+
+    // Fetch all logs and get Grok AI advice
+    aiLoading.value = true
+    const logs = await getAllDrinkLogs()
+    const aiResponse = await getGrokAdvice(logs)
+    aiAdvice.value = aiResponse
   } catch (err) {
     console.error('Error loading dashboard data:', err)
+    aiError.value = 'Failed to load AI advice.'
+  } finally {
+    aiLoading.value = false
   }
 })
 
@@ -100,7 +119,7 @@ async function handleLogout() {
 .dashboard-container {
   padding: 1rem;
 }
-.advice-section {
+.advice-section, .ai-advice-section {
   margin-top: 1rem;
 }
 </style>

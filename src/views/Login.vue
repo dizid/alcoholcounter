@@ -10,7 +10,7 @@
     </form>
     
     <button @click="handleSignUp">Sign Up</button>
-    <!-- unused for now: <button @click="loginWithGoogle">Login with Google</button> -->
+    <button @click="loginWithGoogle">Login with Google</button>
     
     <p v-if="error" class="error">{{ error }}</p>
     <p v-if="message" class="success">{{ message }}</p>
