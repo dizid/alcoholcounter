@@ -12,7 +12,13 @@ export async function getGrokAdvice(userData) {
       body: JSON.stringify({ userData }),
     });
 
-    const data = await response.json();
+    let data;
+    try {
+      data = await response.json();
+    } catch (parseError) {
+      console.error('Failed to parse proxy response:', parseError.message);
+      throw new Error('Invalid response from proxy');
+    }
 
     if (!response.ok) {
       throw new Error(data.error || `Failed to fetch AI advice: ${response.statusText} (${response.status})`);

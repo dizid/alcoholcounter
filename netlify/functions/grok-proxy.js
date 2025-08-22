@@ -1,5 +1,5 @@
 // Netlify serverless function to proxy Grok AI API calls (hides API key)
-// Enhanced with token optimization and empty content handling
+// Enhanced with timeout retry and request duration logging
 exports.handler = async (event) => {
   // Log the full event for debugging
   console.log('Raw event:', JSON.stringify(event, null, 2));
@@ -59,30 +59,71 @@ exports.handler = async (event) => {
       };
     }
 
+    // Optimize prompt: Truncate historical counts to last 7 days and limit frequencies
+    const optimizedCounts = Object.fromEntries(
+      Object.entries(userData.historicalCounts || {})
+        .sort()
+        .slice(-7) // Last 7 days only
+    );
+    const optimizedFreq = {};
+    for (const [key, value] of Object.entries(userData.contextFrequencies || {})) {
+      optimizedFreq[key] = Object.fromEntries(
+        Object.entries(value).slice(0, 3) // Top 3 contexts per category
+      );
+    }
+    const optimizedData = {
+      historicalCounts: optimizedCounts,
+      contextFrequencies: optimizedFreq,
+    };
+    console.log('Optimized userData:', optimizedData);
+
     // System prompt for Grok
-    const systemPrompt = 'You are a professional addiction therapist. Give advice based on the users drinking habits and other submitted data.';
+    const systemPrompt = 'You are a professional addiction therapist. Give concise advice based on the user\'s drinking habits and context frequencies.';
 
-    // User message with summarized data
-    const userMessage = `Here is the summarized user data: Historical daily drink counts (last 30 days): ${JSON.stringify(userData.historicalCounts)}. Context frequencies: ${JSON.stringify(userData.contextFrequencies)}`;
+    // User message with optimized data
+    const userMessage = `Summarized user data: Historical daily drink counts (last 7 days): ${JSON.stringify(optimizedCounts)}. Context frequencies: ${JSON.stringify(optimizedFreq)}`;
 
-    // Grok API request
-    console.log('Making Grok API request with summarized userData:', userData);
-    const response = await fetch('https://api.x.ai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${process.env.GROK_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: 'grok-4',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMessage },
-        ],
-        temperature: 0.7,
-        max_tokens: 1000, // Increased to allow longer responses
-      }),
-    });
+    // Grok API request with retry on timeout
+    console.log('Making Grok API request with optimized userData:', optimizedData);
+    let response;
+    let attempt = 1;
+    const maxAttempts = 2;
+    while (attempt <= maxAttempts) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 9000); // 9s timeout
+      const startTime = Date.now();
+      try {
+        response = await fetch('https://api.x.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${process.env.GROK_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: 'grok-3',
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userMessage },
+            ],
+            temperature: 0.7,
+            max_tokens: 500,
+          }),
+          signal: controller.signal,
+        });
+        console.log(`API request attempt ${attempt} took ${Date.now() - startTime}ms`);
+        break; // Success, exit retry loop
+      } catch (fetchError) {
+        console.error(`Fetch error (attempt ${attempt}):`, fetchError.message);
+        if (fetchError.name === 'AbortError' && attempt < maxAttempts) {
+          console.log('Retrying due to timeout...');
+          attempt++;
+          continue;
+        }
+        throw fetchError.name === 'AbortError' ? new Error('Grok API request timed out after retries') : fetchError;
+      } finally {
+        clearTimeout(timeoutId);
+      }
+    }
 
     // Parse API response
     let data;
@@ -113,9 +154,9 @@ exports.handler = async (event) => {
     }
 
     // Handle empty content
-    const aiAdvice = data.choices[0].message.content || 'No specific advice generated; please try again with fewer logs.';
+    const aiAdvice = data.choices[0].message.content || 'No specific advice generated; please try again.';
     if (!data.choices[0].message.content) {
-      console.warn('Grok API returned empty content, likely due to token limit:', data);
+      console.warn('Grok API returned empty content:', data);
     }
 
     return {

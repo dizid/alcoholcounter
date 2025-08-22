@@ -46,16 +46,18 @@ async function loadData() {
 
     // Prepare summarized user data (historical counts and context frequencies)
     aiLoading.value = true
-    aiError.value = ''
+    aiError.value = '';
     const userData = { historicalCounts: counts, contextFrequencies: freq }
     console.log('Sending summarized data to Grok:', userData); // Debug: inspect data
     const aiResponse = await getGrokAdvice(userData)
-    aiAdvice.value = aiResponse
+    aiAdvice.value = aiResponse;
   } catch (err) {
-    console.error('Error loading dashboard data:', err)
-    aiError.value = `Failed to load AI advice: ${err.message}`
+    console.error('Error loading dashboard data:', err);
+    aiError.value = err.message.includes('timed out') 
+      ? 'AI advice timed out; please try again later.' 
+      : `Failed to load AI advice: ${err.message}`;
   } finally {
-    aiLoading.value = false
+    aiLoading.value = false;
   }
 }
 
