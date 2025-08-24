@@ -1,31 +1,38 @@
-// Netlify serverless function to proxy Grok AI API calls (hides API key)
-// Enhanced with timeout retry, exponential backoff, and detailed logging
+// Netlify function to proxy Grok AI API calls
+// Enhanced with detailed logging to diagnose empty responses
+// Ensures valid JSON responses in all cases
+
 exports.handler = async (event) => {
-  // Log the full event for debugging
+  // Log function invocation
+  console.log('Function invoked at:', new Date().toISOString());
   console.log('Raw event:', JSON.stringify(event, null, 2));
 
-  // Log environment variables for debugging
+  // Log environment variables
   console.log('Environment variables:', {
     GROK_API_KEY: process.env.GROK_API_KEY ? 'present' : 'missing',
   });
 
+  // Helper function to return consistent JSON responses
+  const sendResponse = (statusCode, body) => {
+    console.log('Sending response:', { statusCode, body });
+    return {
+      statusCode,
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    };
+  };
+
   // Only allow POST requests
   if (event.httpMethod !== 'POST') {
     console.error('Invalid method:', event.httpMethod);
-    return {
-      statusCode: 405,
-      body: JSON.stringify({ error: 'Method Not Allowed' }),
-    };
+    return sendResponse(405, { error: 'Method Not Allowed' });
   }
 
   try {
     // Check if body exists
     if (!event.body) {
       console.error('Request body is empty or undefined');
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'Request body is empty' }),
-      };
+      return sendResponse(400, { error: 'Request body is empty' });
     }
 
     // Parse incoming body safely
@@ -35,28 +42,19 @@ exports.handler = async (event) => {
       requestBody = JSON.parse(event.body);
     } catch (parseError) {
       console.error('Failed to parse request body:', parseError.message);
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'Invalid request body format' }),
-      };
+      return sendResponse(400, { error: 'Invalid request body format' });
     }
 
     const { userData } = requestBody;
     if (!userData) {
       console.error('userData missing in request body');
-      return {
-        statusCode: 400,
-        body: JSON.stringify({ error: 'userData is required' }),
-      };
+      return sendResponse(400, { error: 'userData is required' });
     }
 
     // Verify API key
     if (!process.env.GROK_API_KEY) {
       console.error('GROK_API_KEY environment variable is missing');
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: 'Server configuration error: Missing API key' }),
-      };
+      return sendResponse(500, { error: 'Server configuration error: Missing API key' });
     }
 
     // Optimize prompt: Truncate historical counts to last 7 days and limit frequencies
@@ -77,7 +75,7 @@ exports.handler = async (event) => {
     };
     console.log('Optimized userData:', optimizedData);
 
-    // System prompt for Grok: Structured, professional advice
+    // System prompt for Grok
     const systemPrompt = `
 You are a professional addiction therapist specializing in alcohol moderation.
 Provide empathetic, actionable advice based on the user's drinking habits.
@@ -94,7 +92,7 @@ Analyze the data:
 - End with motivational encouragement
 `.trim();
 
-    // User message: Provide data and explicit instructions
+    // User message
     const userMessage = `
 User's summarized data:
 - Historical daily drink counts (last 7 days, date: count): ${JSON.stringify(optimizedCounts)}
@@ -107,8 +105,8 @@ Based on this, provide insights on trends (e.g., average drinks, spikes), potent
     console.log('Making Grok API request with optimized userData:', optimizedData);
     let response;
     let attempt = 1;
-    const maxAttempts = 3; // Increased to 3 attempts
-    const baseTimeout = 12000; // 12s timeout per attempt
+    const maxAttempts = 3;
+    const baseTimeout = 30000; // 30s for faster testing
     while (attempt <= maxAttempts) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), baseTimeout);
@@ -135,14 +133,13 @@ Based on this, provide insights on trends (e.g., average drinks, spikes), potent
         if (!response.ok) {
           throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
         }
-        break; // Success, exit retry loop
+        break;
       } catch (fetchError) {
         console.error(`Fetch error (attempt ${attempt}):`, fetchError.message);
         if (fetchError.name === 'AbortError' && attempt < maxAttempts) {
           console.log(`Retrying after timeout, attempt ${attempt + 1}...`);
           attempt++;
-          // Exponential backoff: wait 2s * (attempt number) before retry
-          await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+          await new Promise(resolve => setTimeout(resolve, 5000 * attempt));
           continue;
         }
         throw fetchError.name === 'AbortError'
@@ -156,17 +153,19 @@ Based on this, provide insights on trends (e.g., average drinks, spikes), potent
     // Parse API response
     let data;
     try {
-      data = await response.json();
-      console.log('Grok API response:', JSON.stringify(data, null, 2));
+      const responseText = await response.text();
+      console.log('Raw Grok API response:', responseText);
+      data = JSON.parse(responseText);
+      console.log('Parsed Grok API response:', JSON.stringify(data, null, 2));
     } catch (parseError) {
       console.error('Failed to parse Grok API response:', parseError.message);
-      throw new Error('Invalid response format from Grok API');
+      return sendResponse(500, { error: 'Invalid response format from Grok API' });
     }
 
     // Check for API errors
     if (!response.ok) {
       console.error('Grok API error:', data.error?.message || response.statusText);
-      throw new Error(data.error?.message || `Grok API error: ${response.status}`);
+      return sendResponse(500, { error: data.error?.message || `Grok API error: ${response.status}` });
     }
 
     // Log token usage
@@ -175,10 +174,7 @@ Based on this, provide insights on trends (e.g., average drinks, spikes), potent
     // Validate response structure
     if (!data.choices || !data.choices[0] || !data.choices[0].message) {
       console.error('Invalid Grok API response structure:', JSON.stringify(data, null, 2));
-      return {
-        statusCode: 500,
-        body: JSON.stringify({ error: `Failed to get AI advice: Invalid response structure: ${JSON.stringify(data)}` }),
-      };
+      return sendResponse(500, { error: 'Invalid response structure from Grok API' });
     }
 
     // Handle empty content
@@ -187,15 +183,9 @@ Based on this, provide insights on trends (e.g., average drinks, spikes), potent
       console.warn('Grok API returned empty content:', data);
     }
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({ advice: aiAdvice }),
-    };
+    return sendResponse(200, { advice: aiAdvice });
   } catch (error) {
     console.error('Error in Grok proxy:', error.message, error.stack);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: `Failed to get AI advice: ${error.message}` }),
-    };
+    return sendResponse(500, { error: `Failed to get AI advice: ${error.message}` });
   }
 };

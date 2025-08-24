@@ -1,4 +1,3 @@
-// Database interaction module for drink logs
 import { supabase } from '../supabase'
 
 // Add a new drink log (with optional contexts)
@@ -89,18 +88,6 @@ export async function getContextFrequencies() {
   })
 
   return freq
-}
-
-// Reset daily count (delete today's logs)
-// RLS automatically limits to user's own logs
-export async function resetTodayLogs() {
-  const today = new Date().toISOString().split('T')[0]
-  const { error } = await supabase
-    .from('drink_logs')
-    .delete()
-    .gte('created_at', `${today}T00:00:00Z`)
-    .lte('created_at', `${today}T23:59:59Z`)
-  if (error) throw error
 }
 
 // Fetch all drink logs for the user (for AI analysis)

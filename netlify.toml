@@ -1,3 +1,4 @@
-[functions]
-  directory = "netlify/functions"
-  timeout = 26
+[build]
+  functions = "netlify/functions"
+  command = "npm run build" # Adjust if your build command differs (e.g., 'vite build')
+  publish = "dist" # Adjust if your Vite output directory differs

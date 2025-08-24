@@ -5,29 +5,30 @@
     <p>{{ progressMessage }}</p>
     
     <button @click="showContextForm = true">+ Add Drink</button>
-    <button @click="resetCount">Reset Daily Count</button>
     
     <ContextForm v-if="showContextForm" @submit="handleAddDrink" @cancel="showContextForm = false" />
     
     <button @click="goToDashboard">View Dashboard</button>
     <button @click="handleLogout">Logout</button>
+    <p v-if="error" class="error">{{ error }}</p>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
-import { addDrinkLog, getTodayDrinkCount, resetTodayLogs } from '../services/db'
+import { addDrinkLog, getTodayDrinkCount } from '../services/db'
 import { logout } from '../services/auth'
 import ContextForm from '../components/ContextForm.vue'
 
 // Initialize router for navigation
 const router = useRouter()
 
-// Reactive state for drink tracking
+// Reactive state for drink tracking and errors
 const drinkCount = ref(0)
 const showContextForm = ref(false)
 const progressMessage = ref('')
+const error = ref('') // New: For logout error feedback
 
 // Fetch today's count on component mount
 onMounted(async () => {
@@ -36,6 +37,7 @@ onMounted(async () => {
     updateProgressMessage()
   } catch (err) {
     console.error('Error fetching today\'s count:', err)
+    error.value = 'Failed to load today\'s count.'
   }
 })
 
@@ -46,8 +48,10 @@ async function handleAddDrink(context) {
     drinkCount.value += 1
     updateProgressMessage()
     showContextForm.value = false
+    error.value = '' // Clear errors on successful action
   } catch (err) {
     console.error('Error adding drink:', err)
+    error.value = 'Failed to add drink.'
   }
 }
 
@@ -62,19 +66,6 @@ function updateProgressMessage() {
   }
 }
 
-// Reset daily count with confirmation
-async function resetCount() {
-  if (confirm('Reset today\'s count? This deletes today\'s logs.')) {
-    try {
-      await resetTodayLogs()
-      drinkCount.value = 0
-      updateProgressMessage()
-    } catch (err) {
-      console.error('Error resetting count:', err)
-    }
-  }
-}
-
 // Navigate to dashboard
 function goToDashboard() {
   router.push('/dashboard')
@@ -84,9 +75,11 @@ function goToDashboard() {
 async function handleLogout() {
   try {
     await logout()
-    router.push('/') // Redirect to main tracker; router guard handles login redirect if needed
+    router.push('/') // Redirect to main tracker
+    error.value = '' // Clear errors on success
   } catch (err) {
     console.error('Error logging out:', err)
+    error.value = err.message // Show user-friendly error
   }
 }
 </script>
@@ -95,5 +88,9 @@ async function handleLogout() {
 .main-container {
   text-align: center;
   padding: 1rem;
+}
+.error {
+  color: #e74c3c;
+  margin-top: 1rem;
 }
 </style>
