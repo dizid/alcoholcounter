@@ -2,15 +2,11 @@
   <div class="dashboard-container">
     <h1>Progress Dashboard</h1>
     <canvas id="barChart" ref="chartRef"></canvas>
-    <div class="advice-section">
-      <h2>Personalized Advice (Rule-Based)</h2>
-      <p>{{ advice }}</p>
-    </div>
     <div class="ai-advice-section">
       <h2>Grok AI Advice</h2>
-      <p v-if="aiLoading">Loading AI advice...</p>
+      <pulse-loader v-if="aiLoading" :color="'#4a90e2'" :size="'15px'" class="spinner" />
       <p v-else-if="aiError" class="error">{{ aiError }}</p>
-      <p v-else>{{ aiAdvice }}</p>
+      <div v-else v-html="parsedAiAdvice" class="ai-advice-content"></div>
       <button v-if="aiError" @click="retryAiAdvice">Retry AI Advice</button>
     </div>
     <button @click="goToMain">Back to Tracker</button>
@@ -19,9 +15,11 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import Chart from 'chart.js/auto'
+import { marked } from 'marked'
+import PulseLoader from 'vue-spinner/src/PulseLoader.vue'
 import { getHistoricalCounts, getContextFrequencies } from '../services/db'
 import { getGrokAdvice } from '../services/grok'
 import { logout } from '../services/auth'
@@ -31,43 +29,44 @@ const router = useRouter()
 
 // Reactive state for chart and advice
 const chartRef = ref(null)
-const advice = ref('Loading advice...')
 const aiAdvice = ref('')
 const aiLoading = ref(true)
 const aiError = ref('')
 
+// Parse Markdown advice for safe rendering
+const parsedAiAdvice = computed(() => marked.parse(aiAdvice.value, { breaks: true }))
+
 // Fetch data and render chart/advice
 async function loadData() {
   try {
-    const counts = await getHistoricalCounts(30) // Last 30 days
+    const counts = await getHistoricalCounts(30) // Last 30 days for chart
     renderChart(counts)
     const freq = await getContextFrequencies() // Frequencies for contexts
-    await generateAdvice(counts) // Rule-based advice
 
-    // Prepare summarized user data (historical counts and context frequencies)
+    // Prepare summarized user data for AI
     aiLoading.value = true
-    aiError.value = '';
+    aiError.value = ''
     const userData = { historicalCounts: counts, contextFrequencies: freq }
-    console.log('Sending summarized data to Grok:', userData); // Debug: inspect data
+    console.log('Sending summarized data to Grok:', userData)
     const aiResponse = await getGrokAdvice(userData)
-    aiAdvice.value = aiResponse;
+    aiAdvice.value = aiResponse
   } catch (err) {
-    console.error('Error loading dashboard data:', err);
-    aiError.value = err.message.includes('timed out') 
-      ? 'AI advice timed out; please try again later.' 
-      : `Failed to load AI advice: ${err.message}`;
+    console.error('Error loading dashboard data:', err)
+    aiError.value = err.message.includes('timed out')
+      ? 'Unable to load AI advice due to a timeout. Please check your internet connection and try again later.'
+      : `Failed to load AI advice: ${err.message}. Please try again or contact support.`
   } finally {
-    aiLoading.value = false;
+    aiLoading.value = false
   }
 }
 
 // Retry AI advice on button click
 async function retryAiAdvice() {
-  await loadData();
+  await loadData()
 }
 
 // Load data on mount
-loadData();
+loadData()
 
 // Render bar chart with daily counts
 function renderChart(counts) {
@@ -88,29 +87,14 @@ function renderChart(counts) {
     },
     options: {
       scales: { y: { beginAtZero: true } },
-      responsive: true
+      responsive: true,
+      plugins: {
+        tooltip: {
+          enabled: true // Enable tooltips for better UX
+        }
+      }
     }
   })
-}
-
-// Generate personalized advice based on data (rule-based "AI")
-async function generateAdvice(counts) {
-  try {
-    const totalDrinks = Object.values(counts).reduce((a, b) => a + b, 0)
-    const avgDaily = totalDrinks / 30
-    const freq = await getContextFrequencies()
-
-    let tips = []
-    if (avgDaily > 5) tips.push('Your average is high – consider setting a daily limit.')
-    if (freq.company['Alone'] > freq.company['With friends']) tips.push('Drinking alone more often? Try social settings for support.')
-    if (freq.mood['negative'] > freq.mood['positive']) tips.push('Negative moods linked to drinks? Explore alternatives like exercise.')
-    if (totalDrinks === 0) tips.push('Amazing zero-drink streak! Keep building healthy habits.')
-
-    advice.value = tips.join(' ') + ' Stay motivated – you’ve got this!'
-  } catch (err) {
-    console.error('Error generating advice:', err)
-    advice.value = 'Unable to load advice at this time.'
-  }
 }
 
 // Navigate to main tracker
@@ -133,11 +117,27 @@ async function handleLogout() {
 .dashboard-container {
   padding: 1rem;
 }
-.advice-section, .ai-advice-section {
+.ai-advice-section {
   margin-top: 1rem;
+}
+.ai-advice-content {
+  line-height: 1.6;
+  font-size: 1rem;
+}
+.ai-advice-content :deep(h1) {
+  font-size: 1.5rem;
+  margin: 1rem 0 0.5rem;
+}
+.ai-advice-content :deep(ul) {
+  list-style-type: disc;
+  margin-left: 1.5rem;
 }
 .error {
   color: #e74c3c;
+}
+.spinner {
+  margin: 1rem auto;
+  text-align: center;
 }
 button {
   background: #4a90e2;

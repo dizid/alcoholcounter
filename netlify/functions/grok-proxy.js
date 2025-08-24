@@ -1,5 +1,5 @@
 // Netlify serverless function to proxy Grok AI API calls (hides API key)
-// Enhanced with timeout retry and request duration logging
+// Enhanced with timeout retry, exponential backoff, and detailed logging
 exports.handler = async (event) => {
   // Log the full event for debugging
   console.log('Raw event:', JSON.stringify(event, null, 2));
@@ -77,20 +77,41 @@ exports.handler = async (event) => {
     };
     console.log('Optimized userData:', optimizedData);
 
-    // System prompt for Grok
-    const systemPrompt = 'You are a professional addiction therapist. Give concise advice based on the user\'s drinking habits and context frequencies.';
+    // System prompt for Grok: Structured, professional advice
+    const systemPrompt = `
+You are a professional addiction therapist specializing in alcohol moderation.
+Provide empathetic, actionable advice based on the user's drinking habits.
+Structure your response with Markdown formatting for readability:
+- Use # for main headings (e.g., # Key Insights)
+- Use paragraphs for explanations
+- Use bullet points (-) for tips and recommendations
+- Keep the response concise yet comprehensive (under 500 words)
 
-    // User message with optimized data
-    const userMessage = `Summarized user data: Historical daily drink counts (last 7 days): ${JSON.stringify(optimizedCounts)}. Context frequencies: ${JSON.stringify(optimizedFreq)}`;
+Analyze the data:
+- Identify trends in daily drink counts (e.g., increasing, decreasing, peaks on certain days)
+- Highlight triggers from context frequencies (e.g., common moods, companies, locations linked to higher drinking)
+- Suggest personalized strategies: e.g., alternatives for high-frequency triggers, goal-setting based on trends
+- End with motivational encouragement
+`.trim();
 
-    // Grok API request with retry on timeout
+    // User message: Provide data and explicit instructions
+    const userMessage = `
+User's summarized data:
+- Historical daily drink counts (last 7 days, date: count): ${JSON.stringify(optimizedCounts)}
+- Context frequencies (top 3 per category): ${JSON.stringify(optimizedFreq)}
+
+Based on this, provide insights on trends (e.g., average drinks, spikes), potential triggers (e.g., negative mood leading to more drinks), and 3-5 specific tips to reduce drinking.
+`.trim();
+
+    // Grok API request with retry and exponential backoff
     console.log('Making Grok API request with optimized userData:', optimizedData);
     let response;
     let attempt = 1;
-    const maxAttempts = 2;
+    const maxAttempts = 3; // Increased to 3 attempts
+    const baseTimeout = 12000; // 12s timeout per attempt
     while (attempt <= maxAttempts) {
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 9000); // 9s timeout
+      const timeoutId = setTimeout(() => controller.abort(), baseTimeout);
       const startTime = Date.now();
       try {
         response = await fetch('https://api.x.ai/v1/chat/completions', {
@@ -110,16 +131,23 @@ exports.handler = async (event) => {
           }),
           signal: controller.signal,
         });
-        console.log(`API request attempt ${attempt} took ${Date.now() - startTime}ms`);
+        console.log(`API request attempt ${attempt} took ${Date.now() - startTime}ms, status: ${response.status}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status} ${response.statusText}`);
+        }
         break; // Success, exit retry loop
       } catch (fetchError) {
         console.error(`Fetch error (attempt ${attempt}):`, fetchError.message);
         if (fetchError.name === 'AbortError' && attempt < maxAttempts) {
-          console.log('Retrying due to timeout...');
+          console.log(`Retrying after timeout, attempt ${attempt + 1}...`);
           attempt++;
+          // Exponential backoff: wait 2s * (attempt number) before retry
+          await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
           continue;
         }
-        throw fetchError.name === 'AbortError' ? new Error('Grok API request timed out after retries') : fetchError;
+        throw fetchError.name === 'AbortError'
+          ? new Error('Grok API request timed out after retries')
+          : fetchError;
       } finally {
         clearTimeout(timeoutId);
       }
