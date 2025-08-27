@@ -1,48 +1,55 @@
-import { supabase } from '../supabase'
+// Database service file for Supabase interactions
+// All queries respect Row Level Security (RLS) by using authenticated user
 
-// Add a new drink log (with optional contexts)
-// Automatically includes the current user's ID to satisfy RLS policy
+import { supabase } from '../supabase' // Import Supabase client
+
+// Function to add a drink log with optional context
+// Automatically includes user_id for RLS compliance
 export async function addDrinkLog(context) {
-  // Fetch current authenticated user
+  // Get current authenticated user
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
-    throw new Error('User not authenticated')
+    throw new Error('User not authenticated') // Throw if no user
   }
 
+  // Prepare insert data with user_id
   const insertData = {
-    user_id: user.id, // Required for RLS: must match auth.uid()
-    ...context // Spread optional contexts (location, company, etc.)
+    user_id: user.id, // Required for RLS
+    ...context // Spread context fields (location, etc.)
   }
 
+  // Insert into drink_logs table
   const { data, error } = await supabase
     .from('drink_logs')
     .insert([insertData])
-    .select() // Optionally select to return the inserted row
+    .select() // Return inserted row (optional)
 
-  if (error) throw error
-  return data
+  if (error) throw error // Throw on DB error
+  return data // Return inserted data
 }
 
-// Fetch today's drink count (number of logs today)
-// RLS automatically filters to user's own logs
+// Function to get today's drink count
+// Filtered by date and RLS (user's logs only)
 export async function getTodayDrinkCount() {
-  const today = new Date().toISOString().split('T')[0]
+  const today = new Date().toISOString().split('T')[0] // Get YYYY-MM-DD
   const { data, error } = await supabase
     .from('drink_logs')
-    .select('id')
-    .gte('created_at', `${today}T00:00:00Z`)
-    .lte('created_at', `${today}T23:59:59Z`)
+    .select('id') // Select IDs for count
+    .gte('created_at', `${today}T00:00:00Z`) // Start of day
+    .lte('created_at', `${today}T23:59:59Z`) // End of day
+
   if (error) throw error
-  return data.length
+  return data.length // Return count
 }
 
-// Fetch historical daily counts (for graph, last 30 days)
-// RLS automatically filters to user's own logs
+// Function to get historical daily counts (default last 30 days)
+// Aggregates counts per day, fills zeros for missing dates
 export async function getHistoricalCounts(days = 30) {
-  const endDate = new Date()
+  const endDate = new Date() // Current date
   const startDate = new Date(endDate)
-  startDate.setDate(startDate.getDate() - days)
+  startDate.setDate(startDate.getDate() - days) // Calculate start
 
+  // Query logs in date range (RLS filters to user)
   const { data, error } = await supabase
     .from('drink_logs')
     .select('created_at')
@@ -51,14 +58,14 @@ export async function getHistoricalCounts(days = 30) {
 
   if (error) throw error
 
-  // Group by date and count
+  // Aggregate counts by date
   const counts = {}
   data.forEach(log => {
-    const date = log.created_at.split('T')[0]
-    counts[date] = (counts[date] || 0) + 1
+    const date = log.created_at.split('T')[0] // Extract YYYY-MM-DD
+    counts[date] = (counts[date] || 0) + 1 // Increment count
   })
 
-  // Fill missing dates with 0
+  // Fill missing dates with 0 (for consistent chart data)
   for (let i = 0; i < days; i++) {
     const date = new Date(endDate)
     date.setDate(date.getDate() - i)
@@ -66,20 +73,22 @@ export async function getHistoricalCounts(days = 30) {
     if (!counts[dateStr]) counts[dateStr] = 0
   }
 
-  return counts
+  return counts // Return date: count object
 }
 
-// Fetch all contexts for analysis (frequencies)
-// RLS automatically filters to user's own logs
+// Function to get frequencies of contexts (location, company, etc.)
+// Aggregates from all user's logs (RLS applied)
 export async function getContextFrequencies() {
   const { data, error } = await supabase
     .from('drink_logs')
-    .select('location, company, drink_type, mood')
+    .select('location, company, drink_type, mood') // Select context fields
 
   if (error) throw error
 
+  // Initialize frequency object
   const freq = { location: {}, company: {}, drink_type: {}, mood: {} }
   data.forEach(log => {
+    // Count each non-null context
     Object.keys(freq).forEach(key => {
       if (log[key]) {
         freq[key][log[key]] = (freq[key][log[key]] || 0) + 1
@@ -87,17 +96,19 @@ export async function getContextFrequencies() {
     })
   })
 
-  return freq
+  return freq // Return frequency object
 }
 
-// Fetch all drink logs for the user (for AI analysis)
-// RLS automatically filters to user's own logs
+// Function to get all drink logs for the user
+// Useful for detailed analysis; sorted by recency
 export async function getAllDrinkLogs() {
   const { data, error } = await supabase
     .from('drink_logs')
-    .select('*')
-    .order('created_at', { ascending: false }); // Sort by date descending for recency
+    .select('*') // Select all fields
+    .order('created_at', { ascending: false }) // Newest first
 
   if (error) throw error
-  return data;
+  return data // Return array of logs
 }
+
+// Note: For performance, consider adding client-side caching (e.g., with localStorage or Pinia) for frequent queries like getTodayDrinkCount if app scales.

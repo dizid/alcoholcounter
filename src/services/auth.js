@@ -1,15 +1,17 @@
-import { supabase } from '../supabase'
+// Authentication service file for Supabase auth operations
 
-// Login with email and password
+import { supabase } from '../supabase' // Import Supabase client
+
+// Function for email/password login
 export async function login(email, password) {
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password,
   })
-  if (error) throw error
+  if (error) throw error // Throw on auth error
 }
 
-// Sign up with email and password
+// Function for email/password signup (with email confirmation)
 export async function signUp(email, password) {
   const { error } = await supabase.auth.signUp({
     email,
@@ -18,7 +20,7 @@ export async function signUp(email, password) {
   if (error) throw error
 }
 
-// Login with OAuth provider (e.g., Google)
+// Function for OAuth provider login (e.g., Google)
 export async function loginWithProvider(provider) {
   const { error } = await supabase.auth.signInWithOAuth({
     provider,
@@ -26,16 +28,16 @@ export async function loginWithProvider(provider) {
   if (error) throw error
 }
 
-// Logout and clear session
+// Function for logout
 export async function logout() {
   try {
-    // Attempt to sign out from Supabase
+    // Sign out from Supabase
     const { error } = await supabase.auth.signOut()
     if (error) {
       console.error('Supabase signOut error:', error.message)
       throw new Error('Failed to log out. Please try again.')
     }
-    // Clear any local session data (optional, for robustness)
+    // Refresh session to clear local data
     await supabase.auth.refreshSession()
   } catch (err) {
     console.error('Logout error:', err.message)

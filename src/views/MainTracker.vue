@@ -1,61 +1,67 @@
 <template>
+  <!-- Main container for the daily drink tracker UI -->
   <div class="main-container">
     <h1>Daily Drink Tracker</h1>
     <p>Current drinks today: {{ drinkCount }}</p>
     <p>{{ progressMessage }}</p>
     
+    <!-- Button to toggle the context form for adding a drink -->
     <button @click="showContextForm = true">+ Add Drink</button>
     
+    <!-- Conditionally render the context form component -->
     <ContextForm v-if="showContextForm" @submit="handleAddDrink" @cancel="showContextForm = false" />
     
+    <!-- Navigation buttons -->
     <button @click="goToDashboard">View Dashboard</button>
     <button @click="handleLogout">Logout</button>
+    
+    <!-- Display error message if any -->
     <p v-if="error" class="error">{{ error }}</p>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
-import { addDrinkLog, getTodayDrinkCount } from '../services/db'
-import { logout } from '../services/auth'
-import ContextForm from '../components/ContextForm.vue'
+import { ref, onMounted } from 'vue' // Import Vue core utilities for reactivity and lifecycle
+import { useRouter } from 'vue-router' // Import router for navigation
+import { addDrinkLog, getTodayDrinkCount } from '../services/db' // Import DB service functions
+import { logout } from '../services/auth' // Import auth service for logout
+import ContextForm from '../components/ContextForm.vue' // Import child component for adding drink context
 
-// Initialize router for navigation
+// Initialize router instance for programmatic navigation
 const router = useRouter()
 
-// Reactive state for drink tracking and errors
-const drinkCount = ref(0)
-const showContextForm = ref(false)
-const progressMessage = ref('')
-const error = ref('') // New: For logout error feedback
+// Define reactive states for UI and data management
+const drinkCount = ref(0) // Tracks the number of drinks logged today
+const showContextForm = ref(false) // Controls visibility of the add drink form
+const progressMessage = ref('') // Displays motivational message based on drink count
+const error = ref('') // Stores any error messages for UI feedback
 
-// Fetch today's count on component mount
+// Lifecycle hook: Fetch today's drink count when component mounts
 onMounted(async () => {
   try {
-    drinkCount.value = await getTodayDrinkCount()
-    updateProgressMessage()
+    drinkCount.value = await getTodayDrinkCount() // Retrieve count from DB
+    updateProgressMessage() // Update motivational message
   } catch (err) {
-    console.error('Error fetching today\'s count:', err)
-    error.value = 'Failed to load today\'s count.'
+    console.error('Error fetching today\'s count:', err) // Log error for debugging
+    error.value = 'Failed to load today\'s count.' // Set user-friendly error
   }
 })
 
-// Handle adding a drink with optional contexts
+// Handler for adding a drink: Called from ContextForm submit event
 async function handleAddDrink(context) {
   try {
-    await addDrinkLog(context)
-    drinkCount.value += 1
-    updateProgressMessage()
-    showContextForm.value = false
-    error.value = '' // Clear errors on successful action
+    await addDrinkLog(context) // Log the drink to DB with context
+    drinkCount.value += 1 // Increment local count
+    updateProgressMessage() // Refresh motivational message
+    showContextForm.value = false // Hide the form
+    error.value = '' // Clear any previous errors
   } catch (err) {
-    console.error('Error adding drink:', err)
-    error.value = 'Failed to add drink.'
+    console.error('Error adding drink:', err) // Log error
+    error.value = 'Failed to add drink.' // Set error message
   }
 }
 
-// Update encouraging message based on drink count
+// Helper function to update progress message based on current drink count
 function updateProgressMessage() {
   if (drinkCount.value === 0) {
     progressMessage.value = 'Great start! Keep it up today.'
@@ -66,31 +72,36 @@ function updateProgressMessage() {
   }
 }
 
-// Navigate to dashboard
+// Navigation handler: Go to dashboard route
 function goToDashboard() {
   router.push('/dashboard')
 }
 
-// Handle logout and redirect to main tracker
+// Handler for logout: Calls auth service and redirects
 async function handleLogout() {
   try {
-    await logout()
-    router.push('/') // Redirect to main tracker
-    error.value = '' // Clear errors on success
+    await logout() // Perform logout via Supabase
+    router.push('/') // Redirect to login/main page
+    error.value = '' // Clear errors
   } catch (err) {
-    console.error('Error logging out:', err)
-    error.value = err.message // Show user-friendly error
+    console.error('Error logging out:', err) // Log error
+    error.value = err.message // Display error
   }
 }
 </script>
 
 <style scoped>
+/* Scoped styles for the main container */
 .main-container {
-  text-align: center;
-  padding: 1rem;
+  text-align: center; /* Center all content */
+  padding: 1rem; /* Add padding for spacing */
+  transition: all 0.3s ease; /* Smooth transitions for better UX */
 }
+
+/* Style for error messages */
 .error {
-  color: #e74c3c;
-  margin-top: 1rem;
+  color: #e74c3c; /* Red for errors */
+  margin-top: 1rem; /* Space above error */
+  font-weight: bold; /* Emphasize errors */
 }
 </style>
