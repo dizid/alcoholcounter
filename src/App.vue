@@ -1,52 +1,51 @@
 <template>
   <!-- Root app container -->
   <div id="app">
-    <MainMenu /> <!-- Add main menu component -->
-    <router-view></router-view> <!-- Renders the matched route component -->
+    <header>
+      <MainMenu />
+    </header>
+    <main>
+      <router-view></router-view>
+    </main>
+    <footer>
+      <!-- Optional footer content can be added here -->
+    </footer>
   </div>
 </template>
 
 <script setup>
-import { onMounted } from 'vue' // Lifecycle hook
-import { useUserStore } from './stores/user' // Pinia store for user state
-import { supabase } from './supabase' // Supabase client
-import MainMenu from './components/MainMenu.vue' // Import main menu component
+import { onMounted } from 'vue'
+import { useUserStore } from './stores/user'
+import { supabase } from './supabase'
+import MainMenu from './components/MainMenu.vue'
 
-// Get user store instance
 const userStore = useUserStore()
 
-// Lifecycle hook: Handle auth and notifications on mount
 onMounted(async () => {
-  // Load initial auth session
   const { data: { session } } = await supabase.auth.getSession()
   if (session) {
-    userStore.setUser(session.user) // Set user in store
-    setupNotifications() // Initialize notifications if authenticated
+    userStore.setUser(session.user)
+    setupNotifications()
   }
 
-  // Listen for auth state changes (e.g., login/logout)
   supabase.auth.onAuthStateChange((_, session) => {
-    userStore.setUser(session?.user || null) // Update store
-    if (session) setupNotifications() // Setup notifications on login
+    userStore.setUser(session?.user || null)
+    if (session) setupNotifications()
   })
 })
 
-// Helper function to request and setup notifications
 async function setupNotifications() {
-  // Check permission status
   if (Notification.permission === 'granted') {
-    startNotificationInterval() // Start if granted
+    startNotificationInterval()
   } else if (Notification.permission !== 'denied') {
-    const permission = await Notification.requestPermission() // Request permission
+    const permission = await Notification.requestPermission()
     if (permission === 'granted') {
-      startNotificationInterval() // Start if granted
+      startNotificationInterval()
     }
   }
 }
 
-// Helper function to start periodic notifications
 function startNotificationInterval() {
-  // Array of motivational messages
   const messages = [
     'Remember your goals – you’re doing great!',
     'Stay mindful: one step at a time.',
@@ -55,20 +54,9 @@ function startNotificationInterval() {
     'Proud of your efforts today!'
   ]
 
-  // Set interval to show random notification every 30 minutes
   setInterval(() => {
     const randomMsg = messages[Math.floor(Math.random() * messages.length)]
-    new Notification('Alcohol Support Tracker', { body: randomMsg }) // Display notification
-  }, 30 * 60 * 1000) // 30 minutes in ms
+    new Notification('Alcohol Support Tracker', { body: randomMsg })
+  }, 30 * 60 * 1000)
 }
 </script>
-
-<style>
-/* Global app styles (non-scoped for app-wide application) */
-#app {
-  min-height: 100vh; /* Full viewport height */
-  display: flex; /* Flex layout */
-  flex-direction: column; /* Column direction */
-  background-color: #f9f9f9; /* Light background for app */
-}
-</style>

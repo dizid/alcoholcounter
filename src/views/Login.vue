@@ -1,6 +1,6 @@
 <template>
   <!-- Container for login/signup UI -->
-  <div class="login-container">
+  <div class="container">
     <h1>Alcohol Support Tracker</h1>
     <p>Login or create an account to start tracking.</p>
     
@@ -22,77 +22,47 @@
 </template>
 
 <script setup>
-import { ref } from 'vue' // Import for reactive states
-import { useRouter } from 'vue-router' // Import router for navigation
-import { login, signUp, loginWithProvider } from '../services/auth' // Import auth functions
+import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import { login, signUp, loginWithProvider } from '../services/auth'
 
-// Initialize router
 const router = useRouter()
+const email = ref('')
+const password = ref('')
+const error = ref('')
+const message = ref('')
 
-// Reactive states for form and feedback
-const email = ref('') // Email input
-const password = ref('') // Password input
-const error = ref('') // Error message
-const message = ref('') // Success message (e.g., signup confirmation)
-
-// Handler for login with email/password
 async function handleLogin() {
   try {
-    await login(email.value, password.value) // Authenticate via Supabase
-    message.value = '' // Clear success message
-    router.push('/') // Redirect to main tracker
+    await login(email.value, password.value)
+    message.value = ''
+    router.push('/')
   } catch (err) {
-    error.value = err.message // Set error
-    message.value = '' // Clear success
+    error.value = err.message
+    message.value = ''
   }
 }
 
-// Handler for signup with email/password
 async function handleSignUp() {
   try {
-    await signUp(email.value, password.value) // Create account via Supabase
-    message.value = 'Please check your email to confirm your account.' // Show confirmation
-    error.value = '' // Clear error
-    email.value = '' // Reset form
+    await signUp(email.value, password.value)
+    message.value = 'Please check your email to confirm your account.'
+    error.value = ''
+    email.value = ''
     password.value = ''
   } catch (err) {
-    error.value = err.message // Set error
-    message.value = '' // Clear success
+    error.value = err.message
+    message.value = ''
   }
 }
 
-// Handler for Google OAuth login
 async function loginWithGoogle() {
   try {
-    await loginWithProvider('google') // Initiate OAuth flow
-    message.value = '' // Clear success
+    await loginWithProvider('google')
+    message.value = ''
   } catch (err) {
-    error.value = err.message // Set error
-    message.value = '' // Clear success
+    error.value = err.message
+    message.value = ''
   }
 }
 </script>
-
-<style scoped>
-/* Scoped styles for login container */
-.login-container {
-  max-width: 400px; /* Limit width for mobile-friendliness */
-  margin: auto; /* Center horizontally */
-  padding: 1rem; /* Add padding */
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); /* Subtle shadow for depth */
-}
-
-/* Success message style */
-.success {
-  color: #4a90e2; /* Blue for success */
-  margin-top: 1rem;
-  font-weight: bold;
-}
-
-/* Error message style */
-.error {
-  color: #e74c3c; /* Red for errors */
-  margin-top: 1rem;
-  font-weight: bold;
-}
-</style>
