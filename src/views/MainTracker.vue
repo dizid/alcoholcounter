@@ -6,7 +6,10 @@
     <p>{{ progressMessage }}</p>
     
     <!-- Button to toggle the context form for adding a drink -->
-    <button @click="showContextForm = true">+ Add Drink</button>
+    <button @click="showContextForm = true" class="add-drink-button">+ Add Drink</button>
+    
+    <!-- Second Save button for easy access -->
+    <button @click="saveDrink" class="save-button">Save</button>
     
     <!-- Conditionally render the context form component -->
     <ContextForm v-if="showContextForm" @submit="handleAddDrink" @cancel="showContextForm = false" />
@@ -25,7 +28,6 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { addDrinkLog, getTodayDrinkCount } from '../services/db'
-import { logout } from '../services/auth'
 import ContextForm from '../components/ContextForm.vue'
 
 const router = useRouter()
@@ -54,6 +56,21 @@ async function handleAddDrink(context) {
   } catch (err) {
     console.error('Error adding drink:', err)
     error.value = 'Failed to add drink.'
+  }
+}
+
+// Function to handle the second Save button
+async function saveDrink() {
+  if (showContextForm.value) {
+    try {
+      await handleAddDrink({}); // Assume empty context if form is open; adjust if needed
+      showContextForm.value = false;
+    } catch (err) {
+      console.error('Error saving drink:', err);
+      error.value = 'Failed to save drink.';
+    }
+  } else {
+    showContextForm.value = true; // Open form if not already open
   }
 }
 

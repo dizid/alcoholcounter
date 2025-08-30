@@ -37,7 +37,7 @@ async function handleLogout() {
 }
 
 function toggleMenu() {
-  isMenuOpen.value = !isMenuOpen.value
+  isMenuOpen.value = !isMenuOpen.value // Ensure toggle works
 }
 
 function closeMenu() {
