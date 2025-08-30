@@ -27,8 +27,7 @@
       <option>neutral</option>
     </select>
     <button @click="submit">Save</button>
-    <button @click="$emit('cancel')">Cancel</button>
-  </div>
+      </div>
 </template>
 
 <script setup>
