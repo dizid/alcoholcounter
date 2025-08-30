@@ -43,4 +43,4 @@ function toggleMenu() {
 function closeMenu() {
   isMenuOpen.value = false
 }
-</script>  
+</script>
