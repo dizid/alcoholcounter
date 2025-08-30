@@ -25,6 +25,7 @@ header {
   color: white;
   padding: 1rem;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+  position: relative; /* Anchor for absolute positioning of dropdown */
 }
 
 .main-menu {
@@ -84,19 +85,22 @@ header {
 @media (max-width: 768px) {
   .hamburger {
     display: flex;
+    z-index: 1001; /* Above other content */
   }
 
   .nav-links {
     display: none;
     flex-direction: column;
     position: absolute;
-    top: 100%;
+    top: 0; /* Start from the top */
     left: 0;
     right: 0;
+    transform: translateY(100%); /* Move down from the hamburger */
     background-color: #3498db; /* Match header color */
     padding: 1rem;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    z-index: 1000; /* Ensure it appears above other content */
+    max-height: calc(100vh - 60px); /* Prevent overlap with footer, adjust based on header height */
+    overflow-y: auto; /* Scroll if content exceeds height */
   }
 
   .nav-links-open {
