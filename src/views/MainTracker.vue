@@ -12,50 +12,90 @@
       <button @click="saveDrink" class="save-button">Save</button>
     </div>
     
-    <!-- New collapsible mindfulness section -->
+    <!-- Collapsible mindfulness section -->
     <div class="mindfulness-section">
-
- <div class="button-group">
-
       <button @click="toggleMindfulness" class="mindfulness-button">
         {{ showMindfulness ? 'Hide Mindful Pause' : 'Mindful Pause' }}
       </button>
-
-</div>
-
-
       <div v-if="showMindfulness" class="mindfulness-content">
-        <!-- Tabs for different mindfulness approaches -->
+        <!-- Tabs for mindfulness approaches -->
         <div class="mindfulness-tabs">
-           <button 
-            v-for="tab in tabs" 
+          <button 
+            v-for="tab in mindfulnessTabs" 
             :key="tab.id" 
-            @click="activeTab = tab.id" 
-            :class="{ 'active-tab': activeTab === tab.id }"
+            @click="activeMindfulnessTab = tab.id" 
+            :class="{ 'active-tab': activeMindfulnessTab === tab.id }"
           >
             {{ tab.label }}
           </button>
-          </div>
-        
-        <!-- Tab content for Present-Moment Awareness -->
-        <div v-if="activeTab === 'awareness'" class="tab-content">
+        </div>
+        <!-- Mindfulness tab content -->
+        <div v-if="activeMindfulnessTab === 'awareness'" class="tab-content">
           <h3>Breathing Exercise</h3>
           <p>Focus on your breath: Inhale for 4 counts, hold for 4, exhale for 4. Repeat 5 times.</p>
           <p>Notice sensations in your body right now without judgment.</p>
         </div>
-        
-        <!-- Tab content for Acceptance Strategies -->
-        <div v-if="activeTab === 'acceptance'" class="tab-content">
+        <div v-if="activeMindfulnessTab === 'acceptance'" class="tab-content">
           <h3>Accept the Urge</h3>
           <p>Acknowledge the craving: "I notice an urge to drink, and that's okay. It will pass."</p>
           <p>Visualize thoughts as clouds drifting by—observe, don't engage.</p>
         </div>
-        
-        <!-- Tab content for Urge Surfing (MBRP-Inspired) -->
-        <div v-if="activeTab === 'intervention'" class="tab-content">
+        <div v-if="activeMindfulnessTab === 'intervention'" class="tab-content">
           <h3>Urge Surfing</h3>
           <p>Ride the wave: Describe the urge (intensity, location in body), watch it peak and fade over 1-2 minutes.</p>
           <p>Remind yourself: "This is temporary; I can choose differently."</p>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Collapsible CBT section -->
+    <div class="cbt-section">
+      <button @click="toggleCbt" class="cbt-button">
+        {{ showCbt ? 'Hide CBT Strategies' : 'CBT Strategies' }}
+      </button>
+      <div v-if="showCbt" class="cbt-content">
+        <!-- Tabs for CBT techniques -->
+        <div class="cbt-tabs">
+          <button 
+            v-for="tab in cbtTabs" 
+            :key="tab.id" 
+            @click="activeCbtTab = tab.id" 
+            :class="{ 'active-tab': activeCbtTab === tab.id }"
+          >
+            {{ tab.label }}
+          </button>
+        </div>
+        <!-- CBT tab content: Trigger Identification -->
+        <div v-if="activeCbtTab === 'triggers'" class="tab-content">
+          <h3>Identify Your Triggers</h3>
+          <p>Reflect on what prompts your urge to drink (e.g., stress, social settings).</p>
+          <p><strong>Coping Strategy</strong>: Write down one trigger and an alternative action (e.g., take a walk instead of drinking).</p>
+          <input v-model="triggerInput" placeholder="Log a trigger (e.g., 'Feeling stressed')" />
+          <button @click="addCopingStrategy" :disabled="!triggerInput" class="action-button">Add Coping Strategy</button>
+          <p v-if="copingFeedback" class="success">{{ copingFeedback }}</p>
+          <!-- New: Display list of saved triggers -->
+          <h4 v-if="userTriggers.length > 0">Your Saved Triggers</h4>
+          <ul class="trigger-list" v-if="userTriggers.length > 0">
+            <li v-for="trig in userTriggers" :key="trig.id">
+              {{ trig.trigger_text }} - {{ new Date(trig.created_at).toLocaleString() }}
+            </li>
+          </ul>
+          <p v-else class="info">No triggers saved yet. Add one above!</p>
+        </div>
+        <!-- CBT tab content: Thought Reframing -->
+        <div v-if="activeCbtTab === 'reframing'" class="tab-content">
+          <h3>Challenge and Reframe Thoughts</h3>
+          <p>Identify a negative thought (e.g., "I need to drink to relax") and reframe it (e.g., "I can relax with deep breathing").</p>
+          <input v-model="thoughtInput" placeholder="Enter a negative thought" />
+          <button @click="reframeThought" :disabled="!thoughtInput" class="action-button">Reframe Thought</button>
+          <p v-if="reframedThought" class="success">{{ reframedThought }}</p>
+        </div>
+        <!-- CBT tab content: Skills Training -->
+        <div v-if="activeCbtTab === 'skills'" class="tab-content">
+          <h3>Skills for High-Risk Situations</h3>
+          <p>Practice refusing a drink: "No thanks, I'm good with water."</p>
+          <p><strong>Exercise</strong>: Imagine a social event. Plan how to say no or choose a non-alcoholic drink.</p>
+          <p>Try deep breathing to manage cravings: Inhale for 4, exhale for 4, repeat 3 times.</p>
         </div>
       </div>
     </div>
@@ -69,33 +109,103 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue' // Added watch for lazy loading
 import { useRouter } from 'vue-router'
-import { addDrinkLog, getTodayDrinkCount, getHistoricalCounts } from '../services/db'
+import { addDrinkLog, getTodayDrinkCount, getHistoricalCounts, addUserTrigger, getUserTriggers } from '../services/db' // Added imports for new trigger functions
 import ContextForm from '../components/ContextForm.vue'
 
-// Reactive state for UI
+// Reactive state for UI (existing remains intact)
 const router = useRouter()
 const drinkCount = ref(0)
 const showContextForm = ref(false)
 const progressMessage = ref('')
 const error = ref('')
 
-// New reactive state for mindfulness section
+// Reactive state for mindfulness section (existing remains intact)
 const showMindfulness = ref(false)
-const activeTab = ref('awareness')
-const tabs = [
+const activeMindfulnessTab = ref('awareness')
+const mindfulnessTabs = [
   { id: 'awareness', label: 'Present-Moment Awareness' },
   { id: 'acceptance', label: 'Acceptance Strategies' },
   { id: 'intervention', label: 'Urge Surfing' }
 ]
 
-// Toggle mindfulness section visibility
+// Reactive state for CBT section (existing remains intact, with new additions for triggers)
+const showCbt = ref(false)
+const activeCbtTab = ref('triggers')
+const cbtTabs = [
+  { id: 'triggers', label: 'Trigger Identification' },
+  { id: 'reframing', label: 'Thought Reframing' },
+  { id: 'skills', label: 'Skills Training' }
+]
+const triggerInput = ref('')
+const thoughtInput = ref('')
+const copingFeedback = ref('')
+const reframedThought = ref('')
+// New: Reactive state for list of user's saved triggers
+const userTriggers = ref([])
+
+// Toggle mindfulness section visibility (existing remains intact)
 function toggleMindfulness() {
   showMindfulness.value = !showMindfulness.value
 }
 
-// Fetch historical data to calculate average daily drinks
+// Toggle CBT section visibility (existing remains intact)
+function toggleCbt() {
+  showCbt.value = !showCbt.value
+}
+
+// New watcher: Fetch user triggers when CBT section is opened (lazy load for performance)
+watch(showCbt, async (newVal) => {
+  if (newVal) {
+    try {
+      userTriggers.value = await getUserTriggers() // Fetch from Supabase
+    } catch (err) {
+      console.error('Error fetching user triggers:', err)
+      error.value = 'Failed to load saved triggers.' // Show global error if fetch fails
+    }
+  }
+})
+
+// Handle adding a coping strategy for triggers (enhanced to persist in Supabase)
+async function addCopingStrategy() {
+  if (triggerInput.value) {
+    try {
+      // Save trigger to Supabase (new persistence)
+      await addUserTrigger(triggerInput.value)
+      
+      // Show feedback (existing, but now after successful save)
+      copingFeedback.value = `Great! For trigger "${triggerInput.value}", try an alternative like taking a walk or calling a friend.`
+      
+      // Clear input and refetch triggers to update list
+      triggerInput.value = ''
+      userTriggers.value = await getUserTriggers() // Refresh list from DB
+      
+      // Clear feedback after 5 seconds (existing)
+      setTimeout(() => (copingFeedback.value = ''), 5000)
+    } catch (err) {
+      console.error('Error saving trigger:', err)
+      error.value = 'Failed to save trigger.' // Show global error on failure
+    }
+  }
+}
+
+// Handle reframing a thought (existing remains intact)
+function reframeThought() {
+  if (thoughtInput.value) {
+    const reframes = {
+      'i need to drink to relax': 'I can relax with deep breathing or a short walk.',
+      'drinking makes me fun': 'I can have fun by engaging in hobbies or conversations.',
+      'i can\'t handle stress without alcohol': 'I can manage stress with exercise or journaling.'
+    }
+    const lowerThought = thoughtInput.value.toLowerCase()
+    reframedThought.value = reframes[lowerThought] || `Try reframing "${thoughtInput.value}" to: "I can find healthier ways to cope."`
+    thoughtInput.value = ''
+    setTimeout(() => (reframedThought.value = ''), 5000) // Clear feedback after 5s
+  }
+}
+
+// Fetch historical data to calculate average daily drinks (existing remains intact)
 async function getAverageDailyDrinks() {
   try {
     const counts = await getHistoricalCounts(30) // Get last 30 days
@@ -107,7 +217,7 @@ async function getAverageDailyDrinks() {
   }
 }
 
-// Initialize component data
+// Initialize component data (existing remains intact)
 onMounted(async () => {
   try {
     drinkCount.value = await getTodayDrinkCount()
@@ -118,7 +228,7 @@ onMounted(async () => {
   }
 })
 
-// Handle adding a new drink
+// Handle adding a new drink (existing remains intact)
 async function handleAddDrink(context) {
   try {
     await addDrinkLog(context)
@@ -132,7 +242,7 @@ async function handleAddDrink(context) {
   }
 }
 
-// Handle the Save button click
+// Handle the Save button click (existing remains intact)
 async function saveDrink() {
   if (showContextForm.value) {
     try {
@@ -147,7 +257,7 @@ async function saveDrink() {
   }
 }
 
-// Update progress message based on drink count and historical average
+// Update progress message based on drink count and historical average (existing remains intact)
 async function updateProgressMessage() {
   const averageDrinks = await getAverageDailyDrinks()
   const messages = [

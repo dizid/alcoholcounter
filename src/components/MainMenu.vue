@@ -11,9 +11,8 @@
     <ul :class="{ 'nav-links': true, 'nav-links-open': isMenuOpen }">
       <li><router-link to="/" class="nav-link" @click="closeMenu">Tracker</router-link></li>
       <li><router-link to="/dashboard" class="nav-link" @click="closeMenu">Dashboard</router-link></li>
-      <li><router-link to="/references" class="nav-link" @click="closeMenu">References</router-link></li>
       <li><router-link to="/feedback" class="nav-link" @click="closeMenu">Feedback</router-link></li>
-      <li><router-link to="/about" class="nav-link" @click="closeMenu">About</router-link></li>
+      <li><router-link to="/about-tracker" class="nav-link" @click="closeMenu">Background Help</router-link></li> <!-- Updated to link to new page -->
       <li><button @click="handleLogout" class="nav-button">Logout</button></li>
     </ul>
   </nav>

@@ -131,7 +131,7 @@ main {
   grid-area: main;
   display: flex;
   justify-content: center;
-  align-items: center;
+  align-items: flex-start; /* Align top for long content */
   min-height: calc(100vh - 100px);
 }
 
@@ -274,7 +274,7 @@ button:hover {
   text-align: center;
 }
 
-/* Table Styles for References.vue */
+/* Table Styles for References.vue and AboutTracker.vue */
 .references-table {
   width: 100%;
   border-collapse: collapse;
@@ -324,7 +324,7 @@ button:hover {
   }
 }
 
-/* Logo Styles for About.vue */
+/* Logo Styles for AboutTracker.vue (Creator's Story) */
 .logo-container {
   margin-top: 2rem;
   text-align: center;
@@ -390,13 +390,163 @@ button:hover {
   padding: 1rem;
   border: 1px solid #ddd;
   border-radius: 4px;
+  animation: fadeIn 0.3s ease-in; /* Subtle fade-in for engagement */
 }
 
-/* Ensure responsiveness for mindfulness section */
+/* Styles for CBT section in MainTracker.vue */
+.cbt-section {
+  margin-top: 1.5rem;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+}
+
+.cbt-button {
+  background-color: #3498db; /* Blue to differentiate from mindfulness */
+  color: white;
+}
+
+.cbt-button:hover {
+  background-color: #2980b9; /* Darker blue on hover */
+}
+
+.cbt-content {
+  margin-top: 1rem;
+  text-align: left;
+}
+
+.cbt-tabs {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 1rem;
+}
+
+.cbt-tabs button {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: #e0e0e0; /* Slightly darker grey for better contrast */
+  color: #333; /* Dark text for readability */
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s;
+  border-radius: 4px;
+}
+
+.cbt-tabs button:hover {
+  background: #d0d0d0; /* Darker grey on hover for feedback */
+}
+
+.cbt-tabs button.active-tab {
+  background: #2ecc71; /* Green for active tab, matching app theme */
+  color: white; /* White text for contrast */
+}
+
+.action-button {
+  background-color: #2ecc71; /* Green for action buttons */
+  margin-top: 1rem;
+}
+
+.action-button:hover {
+  background-color: #27ae60;
+}
+
+.action-button:disabled {
+  background-color: #ccc;
+  cursor: not-allowed;
+}
+
+/* Fade-in animation for tab content */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Styles for saved triggers list in CBT triggers tab */
+.trigger-list {
+  list-style-type: disc; /* Bullet points for readability */
+  margin-top: 1rem;
+  padding-left: 1.5rem; /* Indent list */
+  max-height: 200px; /* Limit height for scrolling if many triggers */
+  overflow-y: auto; /* Scroll if exceeds height */
+}
+
+.trigger-list li {
+  margin-bottom: 0.5rem; /* Space between items */
+  color: #333; /* Dark text for contrast */
+  font-size: 0.95rem; /* Slightly smaller for list */
+}
+
+.info {
+  color: #7f8c8d; /* Grey for informational text */
+  font-style: italic; /* Italic to differentiate */
+}
+
+/* Styles for AboutTracker.vue sections */
+.section {
+  margin-top: 2rem;
+  padding: 1.5rem;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.section h2 {
+  color: #3498db;
+  font-size: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.section h3 {
+  color: #2ecc71;
+  font-size: 1.25rem;
+  margin: 1rem 0 0.5rem;
+}
+
+.section-content {
+  line-height: 1.6;
+  font-size: 1rem;
+}
+
+.section-content h3 {
+  font-size: 1.25rem;
+  margin: 1rem 0 0.5rem;
+  color: #2ecc71;
+}
+
+.section-content ul {
+  list-style-type: disc;
+  margin-left: 1.5rem;
+}
+
+/* Styles for resources list in AboutTracker.vue */
+.resources-list {
+  list-style-type: disc;
+  margin-top: 1rem;
+  padding-left: 1.5rem;
+}
+
+.resources-list li {
+  margin-bottom: 0.5rem;
+  font-size: 1rem;
+}
+
+.resources-list a {
+  color: #3498db;
+  text-decoration: none;
+}
+
+.resources-list a:hover {
+  text-decoration: underline;
+}
+
+/* Ensure responsiveness for sections, resources, and logo */
 @media (max-width: 768px) {
-  .mindfulness-section {
+  .section, .resources-list, .logo-container {
     width: 95%; /* Wider on small screens */
     margin-left: auto;
     margin-right: auto;
+  }
+  .logo-image {
+    max-height: 150px; /* Smaller logo on mobile */
   }
 }

@@ -34,7 +34,7 @@ import { useRouter } from 'vue-router'
 import Chart from 'chart.js/auto'
 import { marked } from 'marked'
 import PulseLoader from 'vue-spinner/src/PulseLoader.vue'
-import { getHistoricalCounts, getContextFrequencies } from '../services/db'
+import { getHistoricalCounts, getContextFrequencies, getUserTriggers } from '../services/db' // Added import for getUserTriggers
 import { getGrokAdvice } from '../services/grok'
 import { logout } from '../services/auth'
 
@@ -59,7 +59,17 @@ async function loadData() {
     error.value = ''
     const freq = await getContextFrequencies()
     console.log('Context frequencies:', freq)
-    const userData = { historicalCounts: counts, contextFrequencies: freq }
+    
+    // New: Fetch user-entered triggers for AI-driven analysis
+    const triggers = await getUserTriggers()
+    console.log('User triggers:', triggers)
+    
+    // Prepare userData with historicalCounts, contextFrequencies, and userTriggers
+    const userData = { 
+      historicalCounts: counts, 
+      contextFrequencies: freq,
+      userTriggers: triggers // Include full triggers array (will be optimized in proxy)
+    }
     console.log('Sending summarized data to Grok:', userData)
     const aiResponse = await getGrokAdvice(userData)
     aiAdvice.value = aiResponse

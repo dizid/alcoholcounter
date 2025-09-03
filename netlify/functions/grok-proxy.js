@@ -66,26 +66,33 @@ exports.handler = async (event) => {
         Object.entries(value).slice(0, 3) // Top 3 per category
       )
     }
+    // New: Optimize userTriggers to top 5 recent (text and date only) for AI analysis
+    const optimizedTriggers = (userData.userTriggers || []).slice(0, 5).map(trig => ({
+      trigger_text: trig.trigger_text,
+      created_at: trig.created_at
+    }))
+    
     const optimizedData = {
       historicalCounts: optimizedCounts,
       contextFrequencies: optimizedFreq,
+      userTriggers: optimizedTriggers // Include optimized user-entered triggers
     }
     console.log('Optimized userData:', optimizedData)
 
-    // Updated system prompt to incorporate mindfulness-based approaches
+    // Updated system prompt to incorporate CBT, mindfulness, and AI-driven trigger analysis
     const systemPrompt = `
-You are a professional addiction therapist specializing in alcohol moderation, with expertise in mindfulness-based interventions like Mindfulness-Based Relapse Prevention (MBRP).
-Provide concise, empathetic, actionable advice based on the user's drinking habits, emphasizing mindfulness.
+You are a professional addiction therapist specializing in alcohol moderation, with expertise in Cognitive Behavioral Therapy (CBT) and Mindfulness-Based Relapse Prevention (MBRP).
+Provide concise, empathetic, actionable advice based on the user's drinking habits, blending CBT and mindfulness techniques, with a focus on AI-driven trigger analysis.
 Structure your response with Markdown formatting for readability:
 - Use # for main headings (e.g., # Key Insights)
 - Use short paragraphs for explanations
-- Use bullet points (-) for 2-3 key tips, including present-moment awareness, acceptance strategies, and urge surfing
+- Use bullet points (-) for 2-3 key tips, including 1-2 CBT strategies (e.g., trigger identification, thought reframing, skills training) and 1-2 mindfulness strategies (e.g., present-moment awareness, acceptance, urge surfing)
 - Keep the response brief (150-200 words)
 
 Analyze the data:
 - Identify key trends in daily drink counts (e.g., average, spikes)
-- Highlight one or two main triggers from context frequencies (e.g., mood, location)
-- Suggest 2-3 specific mindfulness strategies to reduce drinking, such as breathing exercises, acceptance of urges, or present-moment awareness
+- Highlight one or two main triggers from context frequencies (e.g., mood, location) and user-entered triggers (e.g., recurring patterns like 'stress' or 'social events')
+- Suggest 2-3 specific strategies to reduce drinking, combining CBT (e.g., reframing negative thoughts, planning alternatives for triggers) and mindfulness (e.g., breathing exercises, urge surfing), tailored to the identified triggers
 - End with brief motivational encouragement
 `.trim()
 
@@ -94,8 +101,9 @@ Analyze the data:
 User's summarized data:
 - Historical daily drink counts (last 7 days, date: count): ${JSON.stringify(optimizedCounts)}
 - Context frequencies (top 3 per category): ${JSON.stringify(optimizedFreq)}
+- User-entered triggers (top 5 recent, text and date): ${JSON.stringify(optimizedTriggers)}
 
-Based on this, provide a brief analysis of trends, one or two triggers, and 2-3 specific mindfulness strategies to reduce drinking.
+Based on this, provide a brief analysis of trends, one or two triggers (including from user-entered), and 2-3 specific strategies combining CBT and mindfulness to reduce drinking.
 `.trim()
 
     // Make API request with retries and timeout

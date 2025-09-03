@@ -1,20 +1,17 @@
-// Router configuration with auth guards
 import { createRouter, createWebHistory } from 'vue-router'
-import Login from './views/Login.vue'
 import MainTracker from './views/MainTracker.vue'
 import Dashboard from './views/Dashboard.vue'
-import About from './views/About.vue'
 import Feedback from './views/Feedback.vue'
-import References from './views/References.vue'
+import Login from './views/Login.vue'
+import AboutTracker from './views/AboutTracker.vue' // New import for AboutTracker page
 import { useUserStore } from './stores/user'
 
 const routes = [
+  { path: '/', component: MainTracker },
+  { path: '/dashboard', component: Dashboard },
+  { path: '/feedback', component: Feedback },
+  { path: '/about-tracker', component: AboutTracker }, // New route for AboutTracker
   { path: '/login', component: Login },
-  { path: '/', component: MainTracker, meta: { requiresAuth: true } },
-  { path: '/dashboard', component: Dashboard, meta: { requiresAuth: true } },
-  { path: '/about', component: About, meta: { requiresAuth: false } },
-  { path: '/feedback', component: Feedback, meta: { requiresAuth: false } },
-  { path: '/references', component: References, meta: { requiresAuth: false } }
 ]
 
 const router = createRouter({
