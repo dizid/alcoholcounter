@@ -19,8 +19,10 @@
       <button v-if="aiError" @click="retryAiAdvice">Retry AI Advice</button>
     </section>
     <!-- Navigation buttons -->
+    <div class="button-group">
     <button @click="goToMain">Back to Tracker</button>
     <button @click="handleLogout">Logout</button>
+    </div>
     <!-- General error display -->
     <p v-if="error" class="error">{{ error }}</p>
   </article>

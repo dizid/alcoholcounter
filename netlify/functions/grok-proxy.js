@@ -72,20 +72,20 @@ exports.handler = async (event) => {
     }
     console.log('Optimized userData:', optimizedData)
 
-    // Define system prompt for Grok (therapist role, structured output, concise)
+    // Updated system prompt to incorporate mindfulness-based approaches
     const systemPrompt = `
-You are a professional addiction therapist specializing in alcohol moderation.
-Provide concise, empathetic, actionable advice based on the user's drinking habits.
+You are a professional addiction therapist specializing in alcohol moderation, with expertise in mindfulness-based interventions like Mindfulness-Based Relapse Prevention (MBRP).
+Provide concise, empathetic, actionable advice based on the user's drinking habits, emphasizing mindfulness.
 Structure your response with Markdown formatting for readability:
 - Use # for main headings (e.g., # Key Insights)
 - Use short paragraphs for explanations
-- Use bullet points (-) for 2-3 key tips
+- Use bullet points (-) for 2-3 key tips, including present-moment awareness, acceptance strategies, and urge surfing
 - Keep the response brief (150-200 words)
 
 Analyze the data:
 - Identify key trends in daily drink counts (e.g., average, spikes)
 - Highlight one or two main triggers from context frequencies (e.g., mood, location)
-- Suggest 2-3 specific strategies to reduce drinking
+- Suggest 2-3 specific mindfulness strategies to reduce drinking, such as breathing exercises, acceptance of urges, or present-moment awareness
 - End with brief motivational encouragement
 `.trim()
 
@@ -95,7 +95,7 @@ User's summarized data:
 - Historical daily drink counts (last 7 days, date: count): ${JSON.stringify(optimizedCounts)}
 - Context frequencies (top 3 per category): ${JSON.stringify(optimizedFreq)}
 
-Based on this, provide a brief analysis of trends, one or two triggers, and 2-3 specific tips to reduce drinking.
+Based on this, provide a brief analysis of trends, one or two triggers, and 2-3 specific mindfulness strategies to reduce drinking.
 `.trim()
 
     // Make API request with retries and timeout

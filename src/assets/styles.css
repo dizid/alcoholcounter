@@ -85,7 +85,7 @@ header {
     position: absolute;
     top: 100%; /* Start just below hamburger */
     left: 1rem; /* Anchor to left of hamburger */
-    width: 300px; /* Increased width to accommodate full text */
+    width: 300px; /* Fixed width to fit full text */
     background-color: #3498db;
     padding: 1rem;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
@@ -136,13 +136,20 @@ main {
 }
 
 .container {
-  max-width: 500px;
+  max-width: 500px; /* Default for mobile */
   width: 100%;
   padding: 2rem;
   background-color: white;
   border-radius: 8px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
   text-align: center;
+}
+
+/* Widen container on desktop screens */
+@media (min-width: 769px) {
+  .container {
+    max-width: 800px; /* Wider view box for About, Feedback, References */
+  }
 }
 
 h1 {
@@ -329,4 +336,67 @@ button:hover {
   max-height: 200px;
   border-radius: 8px;
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+/* Styles for Mindfulness section in MainTracker.vue */
+.mindfulness-section {
+  margin-top: 1.5rem;
+  background: #ffffff;
+  border-radius: 8px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  padding: 1rem;
+}
+
+.mindfulness-button {
+  background-color: #9b59b6; /* Purple for calm mindfulness theme */
+  color: white;
+}
+
+.mindfulness-button:hover {
+  background-color: #8e44ad;
+}
+
+.mindfulness-content {
+  margin-top: 1rem;
+  text-align: left;
+}
+
+.mindfulness-tabs {
+  display: flex;
+  justify-content: space-around;
+  margin-bottom: 1rem;
+}
+
+.mindfulness-tabs button {
+  padding: 0.5rem 1rem;
+  border: none;
+  background: #e0e0e0; /* Slightly darker grey for better contrast */
+  color: #333; /* Dark text for readability */
+  cursor: pointer;
+  transition: background 0.3s, color 0.3s;
+  border-radius: 4px;
+}
+
+.mindfulness-tabs button:hover {
+  background: #d0d0d0; /* Darker grey on hover for feedback */
+}
+
+.mindfulness-tabs button.active-tab {
+  background: #2ecc71; /* Green for active tab, matching app theme */
+  color: white; /* White text for contrast */
+}
+
+.tab-content {
+  padding: 1rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+}
+
+/* Ensure responsiveness for mindfulness section */
+@media (max-width: 768px) {
+  .mindfulness-section {
+    width: 95%; /* Wider on small screens */
+    margin-left: auto;
+    margin-right: auto;
+  }
 }

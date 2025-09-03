@@ -26,7 +26,10 @@
       <option>negative</option>
       <option>neutral</option>
     </select>
+     <!-- Navigation buttons with horizontal spacing -->
+    <div class="button-group">
     <button @click="submit">Save</button>
+    </div>
       </div>
 </template>
 

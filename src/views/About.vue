@@ -13,6 +13,14 @@
       <!-- Replace 'logo-happy-face.jpg' with the exact filename from src/assets/ (e.g., cheerful-logo.png) -->
       <img src="@/assets/logo.png" alt="Cheerful Alcohol Support Tracker Logo" class="logo-image" />
     </div>
+
+  <div>
+    <p></p>
+  <h2>Privacy Policy</h2>
+  <p>
+Your privacy is important to us. We will never share your information with anyone. We only use your data to improve your experience. By using our service, you agree to this simple policy.
+If you have any questions, feel free to contact us. </p>
+  </div>
   </div>
 </template>
 
