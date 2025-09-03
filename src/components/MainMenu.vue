@@ -4,7 +4,7 @@
     <!-- Hamburger icon for mobile with Menu text -->
     <button class="hamburger" @click="toggleMenu" aria-label="Toggle menu">
       <span class="hamburger-icon">{{ isMenuOpen ? '✖' : '☰' }}</span>
-      <span class="hamburger-text">Menu</span>
+      <span class="hamburger-text"> Menu</span>
     </button>
     
     <!-- Navigation links -->
@@ -12,7 +12,7 @@
       <li><router-link to="/" class="nav-link" @click="closeMenu">Tracker</router-link></li>
       <li><router-link to="/dashboard" class="nav-link" @click="closeMenu">Dashboard</router-link></li>
       <li><router-link to="/feedback" class="nav-link" @click="closeMenu">Feedback</router-link></li>
-      <li><router-link to="/about-tracker" class="nav-link" @click="closeMenu">Background Help</router-link></li> <!-- Updated to link to new page -->
+      <li><router-link to="/about-tracker" class="nav-link" @click="closeMenu">Background</router-link></li>
       <li><button @click="handleLogout" class="nav-button">Logout</button></li>
     </ul>
   </nav>

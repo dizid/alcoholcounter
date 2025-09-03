@@ -27,6 +27,7 @@ header {
   box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   position: relative; /* Anchor for dropdown */
   height: 60px; /* Fixed height */
+  z-index: 1000; /* Ensure header stays above submenu */
 }
 
 .main-menu {
@@ -84,13 +85,14 @@ header {
     flex-direction: column;
     position: absolute;
     top: 100%; /* Start just below hamburger */
-    left: 1rem; /* Anchor to left of hamburger */
-    width: 300px; /* Fixed width to fit full text */
+    left: 0; /* Full width */
+    width: 100%;
     background-color: #3498db;
     padding: 1rem;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
     max-height: calc(100vh - 60px); /* Prevent footer overlap */
     overflow-y: auto;
+    z-index: 999; /* Below header, above content */
   }
 
   .nav-links-open {
@@ -133,6 +135,7 @@ main {
   justify-content: center;
   align-items: flex-start; /* Align top for long content */
   min-height: calc(100vh - 100px);
+  padding-top: 2rem; /* Extra padding to avoid submenu overlap */
 }
 
 .container {
@@ -326,7 +329,7 @@ button:hover {
 
 /* Logo Styles for AboutTracker.vue (Creator's Story) */
 .logo-container {
-  margin-top: 2rem;
+  margin-top: 1.5rem;
   text-align: center;
 }
 
@@ -548,5 +551,36 @@ button:hover {
   }
   .logo-image {
     max-height: 150px; /* Smaller logo on mobile */
+  }
+}
+
+/* New styles for enhanced trigger form in MainTracker.vue */
+.trigger-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.trigger-form label {
+  font-weight: bold;
+  color: #3498db;
+  font-size: 1rem;
+}
+
+.trigger-form input {
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+/* Responsive adjustments for trigger form */
+@media (max-width: 768px) {
+  .trigger-form {
+    gap: 0.5rem;
+  }
+  .trigger-form input {
+    font-size: 0.95rem;
   }
 }

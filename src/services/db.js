@@ -111,21 +111,20 @@ export async function getAllDrinkLogs() {
   return data // Return array of logs
 }
 
-// Note: For performance, consider adding client-side caching (e.g., with localStorage or Pinia) for frequent queries like getTodayDrinkCount if app scales.
-
-// New function: Add a user-entered trigger to the user_triggers table
-// Automatically includes user_id for RLS compliance
-export async function addUserTrigger(triggerText) {
+// Function to add a user-entered trigger to the user_triggers table
+// Now includes optional coping_strategy parameter
+export async function addUserTrigger(triggerText, copingStrategy = null) {
   // Get current authenticated user
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
     throw new Error('User not authenticated') // Throw if no user
   }
 
-  // Prepare insert data with user_id and trigger_text
+  // Prepare insert data with user_id, trigger_text, and coping_strategy
   const insertData = {
     user_id: user.id, // Required for RLS
-    trigger_text: triggerText.trim() // Trim whitespace for clean data
+    trigger_text: triggerText.trim(), // Trim whitespace for clean data
+    coping_strategy: copingStrategy ? copingStrategy.trim() : null // Optional coping strategy
   }
 
   // Insert into user_triggers table
@@ -136,8 +135,8 @@ export async function addUserTrigger(triggerText) {
   if (error) throw error // Throw on DB error
 }
 
-// New function: Get all triggers for the current user
-// Sorted by recency (newest first), respects RLS
+// Function to get all triggers for the current user
+// Includes coping_strategy, sorted by recency
 export async function getUserTriggers() {
   // Get current authenticated user
   const { data: { user }, error: authError } = await supabase.auth.getUser()
@@ -145,13 +144,15 @@ export async function getUserTriggers() {
     throw new Error('User not authenticated') // Throw if no user
   }
 
-  // Query user's triggers, ordered by created_at descending
+  // Query user's triggers, including coping_strategy
   const { data, error } = await supabase
     .from('user_triggers')
-    .select('id, created_at, trigger_text') // Select relevant fields
+    .select('id, created_at, trigger_text, coping_strategy') // Include coping_strategy
     .eq('user_id', user.id) // Filter by user_id (RLS enforces this)
     .order('created_at', { ascending: false }) // Newest first
 
   if (error) throw error // Throw on DB error
   return data || [] // Return array of triggers (empty if none)
 }
+
+// Note: For performance, consider adding client-side caching (e.g., with localStorage or Pinia) for frequent queries like getTodayDrinkCount if app scales.
