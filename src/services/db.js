@@ -35,6 +35,7 @@ export async function getTodayDrinkCount() {
 }
 
 // Function to get historical daily counts
+// src/services/db.js
 export async function getHistoricalCounts(days = 30) {
   const endDate = new Date()
   const startDate = new Date(endDate)
@@ -45,18 +46,12 @@ export async function getHistoricalCounts(days = 30) {
     .gte('created_at', startDate.toISOString())
     .lte('created_at', endDate.toISOString())
   if (error) throw error
-  const counts = {}
-  data.forEach(log => {
-    const date = log.created_at.split('T')[0]
-    counts[date] = (counts[date] || 0) + 1
+  const countsByDate = {}
+  data.forEach(item => {
+    const date = new Date(item.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    countsByDate[date] = (countsByDate[date] || 0) + 1 // Count entries per date
   })
-  for (let i = 0; i < days; i++) {
-    const date = new Date(endDate)
-    date.setDate(date.getDate() - i)
-    const dateStr = date.toISOString().split('T')[0]
-    if (!counts[dateStr]) counts[dateStr] = 0
-  }
-  return counts
+  return countsByDate // Return object { date: count }
 }
 
 // Function to get context frequencies
