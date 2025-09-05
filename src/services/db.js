@@ -6,153 +6,170 @@ import { supabase } from '../supabase' // Import Supabase client
 // Function to add a drink log with optional context
 // Automatically includes user_id for RLS compliance
 export async function addDrinkLog(context) {
-  // Get current authenticated user
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
-    throw new Error('User not authenticated') // Throw if no user
+    throw new Error('User not authenticated')
   }
-
-  // Prepare insert data with user_id
   const insertData = {
-    user_id: user.id, // Required for RLS
-    ...context // Spread context fields (location, etc.)
+    user_id: user.id,
+    ...context
   }
-
-  // Insert into drink_logs table
   const { data, error } = await supabase
     .from('drink_logs')
     .insert([insertData])
-    .select() // Return inserted row (optional)
-
-  if (error) throw error // Throw on DB error
-  return data // Return inserted data
+    .select()
+  if (error) throw error
+  return data
 }
 
 // Function to get today's drink count
-// Filtered by date and RLS (user's logs only)
 export async function getTodayDrinkCount() {
-  const today = new Date().toISOString().split('T')[0] // Get YYYY-MM-DD
+  const today = new Date().toISOString().split('T')[0]
   const { data, error } = await supabase
     .from('drink_logs')
-    .select('id') // Select IDs for count
-    .gte('created_at', `${today}T00:00:00Z`) // Start of day
-    .lte('created_at', `${today}T23:59:59Z`) // End of day
-
+    .select('id')
+    .gte('created_at', `${today}T00:00:00Z`)
+    .lte('created_at', `${today}T23:59:59Z`)
   if (error) throw error
-  return data.length // Return count
+  return data.length
 }
 
-// Function to get historical daily counts (default last 30 days)
-// Aggregates counts per day, fills zeros for missing dates
+// Function to get historical daily counts
 export async function getHistoricalCounts(days = 30) {
-  const endDate = new Date() // Current date
+  const endDate = new Date()
   const startDate = new Date(endDate)
-  startDate.setDate(startDate.getDate() - days) // Calculate start
-
-  // Query logs in date range (RLS filters to user)
+  startDate.setDate(startDate.getDate() - days)
   const { data, error } = await supabase
     .from('drink_logs')
     .select('created_at')
     .gte('created_at', startDate.toISOString())
     .lte('created_at', endDate.toISOString())
-
   if (error) throw error
-
-  // Aggregate counts by date
   const counts = {}
   data.forEach(log => {
-    const date = log.created_at.split('T')[0] // Extract YYYY-MM-DD
-    counts[date] = (counts[date] || 0) + 1 // Increment count
+    const date = log.created_at.split('T')[0]
+    counts[date] = (counts[date] || 0) + 1
   })
-
-  // Fill missing dates with 0 (for consistent chart data)
   for (let i = 0; i < days; i++) {
     const date = new Date(endDate)
     date.setDate(date.getDate() - i)
     const dateStr = date.toISOString().split('T')[0]
     if (!counts[dateStr]) counts[dateStr] = 0
   }
-
-  return counts // Return date: count object
+  return counts
 }
 
-// Function to get frequencies of contexts (location, company, etc.)
-// Aggregates from all user's logs (RLS applied)
+// Function to get context frequencies
 export async function getContextFrequencies() {
   const { data, error } = await supabase
     .from('drink_logs')
-    .select('location, company, drink_type, mood') // Select context fields
-
+    .select('location, company, drink_type, mood')
   if (error) throw error
-
-  // Initialize frequency object
   const freq = { location: {}, company: {}, drink_type: {}, mood: {} }
   data.forEach(log => {
-    // Count each non-null context
     Object.keys(freq).forEach(key => {
       if (log[key]) {
         freq[key][log[key]] = (freq[key][log[key]] || 0) + 1
       }
     })
   })
-
-  return freq // Return frequency object
+  return freq
 }
 
-// Function to get all drink logs for the user
-// Useful for detailed analysis; sorted by recency
+// Function to get all drink logs
 export async function getAllDrinkLogs() {
   const { data, error } = await supabase
     .from('drink_logs')
-    .select('*') // Select all fields
-    .order('created_at', { ascending: false }) // Newest first
-
+    .select('*')
+    .order('created_at', { ascending: false })
   if (error) throw error
-  return data // Return array of logs
+  return data
 }
 
-// Function to add a user-entered trigger to the user_triggers table
-// Now includes optional coping_strategy parameter
+// Function to add a user-entered trigger
 export async function addUserTrigger(triggerText, copingStrategy = null) {
-  // Get current authenticated user
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
-    throw new Error('User not authenticated') // Throw if no user
+    throw new Error('User not authenticated')
   }
-
-  // Prepare insert data with user_id, trigger_text, and coping_strategy
   const insertData = {
-    user_id: user.id, // Required for RLS
-    trigger_text: triggerText.trim(), // Trim whitespace for clean data
-    coping_strategy: copingStrategy ? copingStrategy.trim() : null // Optional coping strategy
+    user_id: user.id,
+    trigger_text: triggerText.trim(),
+    coping_strategy: copingStrategy ? copingStrategy.trim() : null
   }
-
-  // Insert into user_triggers table
   const { error } = await supabase
     .from('user_triggers')
     .insert([insertData])
-
-  if (error) throw error // Throw on DB error
+  if (error) throw error
 }
 
-// Function to get all triggers for the current user
-// Includes coping_strategy, sorted by recency
+// Function to get user triggers
 export async function getUserTriggers() {
-  // Get current authenticated user
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
-    throw new Error('User not authenticated') // Throw if no user
+    throw new Error('User not authenticated')
   }
-
-  // Query user's triggers, including coping_strategy
   const { data, error } = await supabase
     .from('user_triggers')
-    .select('id, created_at, trigger_text, coping_strategy') // Include coping_strategy
-    .eq('user_id', user.id) // Filter by user_id (RLS enforces this)
-    .order('created_at', { ascending: false }) // Newest first
-
-  if (error) throw error // Throw on DB error
-  return data || [] // Return array of triggers (empty if none)
+    .select('id, created_at, trigger_text, coping_strategy')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data || []
 }
 
-// Note: For performance, consider adding client-side caching (e.g., with localStorage or Pinia) for frequent queries like getTodayDrinkCount if app scales.
+// Function to add a user reflection
+export async function addUserReflection(reflectionText, exerciseType) {
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    throw new Error('User not authenticated')
+  }
+  const insertData = {
+    user_id: user.id,
+    reflection_text: reflectionText.trim(),
+    exercise_type: exerciseType
+  }
+  const { error } = await supabase
+    .from('user_reflections')
+    .insert([insertData])
+  if (error) throw error
+}
+
+// Function to get user reflections
+export async function getUserReflections() {
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    throw new Error('User not authenticated')
+  }
+  const { data, error } = await supabase
+    .from('user_reflections')
+    .select('id, created_at, reflection_text, exercise_type')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+  if (error) throw error
+  return data || []
+}
+
+// New function: Log a mindfulness session and return all sessions
+export async function logMindfulnessSession() {
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    throw new Error('User not authenticated')
+  }
+  const today = new Date().toISOString().split('T')[0]
+  const insertData = {
+    user_id: user.id,
+    session_date: today
+  }
+  const { error } = await supabase
+    .from('user_mindfulness_sessions')
+    .insert([insertData])
+  if (error) throw error
+  const { data, error: fetchError } = await supabase
+    .from('user_mindfulness_sessions')
+    .select('session_date')
+    .eq('user_id', user.id)
+    .order('session_date', { ascending: false })
+  if (fetchError) throw fetchError
+  return data || []
+}

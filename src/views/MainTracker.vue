@@ -6,20 +6,16 @@
     <p>{{ progressMessage }}</p>
     <!-- Navigation buttons with horizontal spacing -->
     <div class="button-group">
-      <!-- Button to toggle the context form for adding a drink -->
       <button @click="showContextForm = true" class="add-drink-button">+ Add Drink</button>
-      <!-- Second Save button for easy access -->
       <button @click="saveDrink" class="save-button">Save</button>
     </div>
     
     <!-- Collapsible mindfulness section -->
-   
     <div class="mindfulness-section">
-        <div class="button-group"></div>
       <button @click="toggleMindfulness" class="mindfulness-button">
         {{ showMindfulness ? 'Hide Mindful Pause' : 'Mindful Pause' }}
+        <span v-if="streak > 0" class="streak-counter">Streak: {{ streak }} days</span>
       </button>
-    </div>
       <div v-if="showMindfulness" class="mindfulness-content">
         <!-- Tabs for mindfulness approaches -->
         <div class="mindfulness-tabs">
@@ -32,32 +28,88 @@
             {{ tab.label }}
           </button>
         </div>
-        <!-- Mindfulness tab content -->
+        <!-- Mindfulness tab content: Present-Moment Awareness with timer -->
         <div v-if="activeMindfulnessTab === 'awareness'" class="tab-content">
           <h3>Breathing Exercise</h3>
           <p>Focus on your breath: Inhale for 4 counts, hold for 4, exhale for 4. Repeat 5 times.</p>
-          <p>Notice sensations in your body right now without judgment.</p>
+          <button @click="startBreathTimer" class="action-button" :disabled="isTimerRunning">Start Timer</button>
+          <p v-if="timerDisplay" class="timer-display">{{ timerDisplay }}</p>
+          <p v-if="breathFeedback" class="success">{{ breathFeedback }}</p>
+          <!-- Reflection input -->
+          <textarea v-model="reflectionInput" placeholder="How did this exercise make you feel? (Optional reflection)"></textarea>
+          <button @click="saveReflection('awareness')" class="action-button" :disabled="!reflectionInput">Save Reflection</button>
+          <p v-if="reflectionFeedback" class="success">{{ reflectionFeedback }}</p>
+          <!-- Reflections list -->
+          <h4 v-if="filteredReflections.length > 0">Your Reflections</h4>
+          <ul class="reflection-list" v-if="filteredReflections.length > 0">
+            <li v-for="refl in filteredReflections" :key="refl.id">
+              {{ refl.reflection_text }} - {{ new Date(refl.created_at).toLocaleString() }}
+            </li>
+          </ul>
+          <p v-else class="info">No reflections saved yet for this exercise.</p>
         </div>
+        <!-- Mindfulness tab content: Acceptance Strategies with AI tip -->
         <div v-if="activeMindfulnessTab === 'acceptance'" class="tab-content">
           <h3>Accept the Urge</h3>
           <p>Acknowledge the craving: "I notice an urge to drink, and that's okay. It will pass."</p>
           <p>Visualize thoughts as clouds drifting by—observe, don't engage.</p>
+          <p v-if="aiTipLoading" class="info">Loading AI tip...</p>
+          <p v-else-if="aiTipError" class="error">{{ aiTipError }}</p>
+          <p v-else><strong>AI Tip:</strong> {{ aiTip }}</p>
+          <button @click="fetchAiTip" class="action-button">Get Another AI Tip</button>
+          <!-- Reflection input -->
+          <textarea v-model="reflectionInput" placeholder="How did this exercise make you feel? (Optional reflection)"></textarea>
+          <button @click="saveReflection('acceptance')" class="action-button" :disabled="!reflectionInput">Save Reflection</button>
+          <p v-if="reflectionFeedback" class="success">{{ reflectionFeedback }}</p>
+          <!-- Reflections list -->
+          <h4 v-if="filteredReflections.length > 0">Your Reflections</h4>
+          <ul class="reflection-list" v-if="filteredReflections.length > 0">
+            <li v-for="refl in filteredReflections" :key="refl.id">
+              {{ refl.reflection_text }} - {{ new Date(refl.created_at).toLocaleString() }}
+            </li>
+          </ul>
+          <p v-else class="info">No reflections saved yet for this exercise.</p>
         </div>
+        <!-- Mindfulness tab content: Urge Surfing with interactive steps -->
         <div v-if="activeMindfulnessTab === 'intervention'" class="tab-content">
           <h3>Urge Surfing</h3>
-          <p>Ride the wave: Describe the urge (intensity, location in body), watch it peak and fade over 1-2 minutes.</p>
-          <p>Remind yourself: "This is temporary; I can choose differently."</p>
+          <p>Ride the wave of your urge. Follow these steps:</p>
+          <ul class="step-list">
+            <li>
+              <input type="checkbox" id="step1" v-model="stepsCompleted[0]" />
+              <label for="step1">Describe the urge (intensity, location in body).</label>
+            </li>
+            <li>
+              <input type="checkbox" id="step2" v-model="stepsCompleted[1]" />
+              <label for="step2">Watch it peak and fade over 1-2 minutes.</label>
+            </li>
+            <li>
+              <input type="checkbox" id="step3" v-model="stepsCompleted[2]" />
+              <label for="step3">Remind yourself: "This is temporary; I can choose differently."</label>
+            </li>
+          </ul>
+          <p v-if="allStepsCompleted" class="success">Great job completing the steps!</p>
+          <!-- Reflection input -->
+          <textarea v-model="reflectionInput" placeholder="How did this exercise make you feel? (Optional reflection)"></textarea>
+          <button @click="saveReflection('intervention')" class="action-button" :disabled="!reflectionInput">Save Reflection</button>
+          <p v-if="reflectionFeedback" class="success">{{ reflectionFeedback }}</p>
+          <!-- Reflections list -->
+          <h4 v-if="filteredReflections.length > 0">Your Reflections</h4>
+          <ul class="reflection-list" v-if="filteredReflections.length > 0">
+            <li v-for="refl in filteredReflections" :key="refl.id">
+              {{ refl.reflection_text }} - {{ new Date(refl.created_at).toLocaleString() }}
+            </li>
+          </ul>
+          <p v-else class="info">No reflections saved yet for this exercise.</p>
         </div>
       </div>
     </div>
     
     <!-- Collapsible CBT section -->
     <div class="cbt-section">
-      <div class="button-group">
       <button @click="toggleCbt" class="cbt-button">
         {{ showCbt ? 'Hide CBT Strategies' : 'CBT Strategies' }}
       </button>
-      </div>
       <div v-if="showCbt" class="cbt-content">
         <!-- Tabs for CBT techniques -->
         <div class="cbt-tabs">
@@ -120,9 +172,10 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { addDrinkLog, getTodayDrinkCount, getHistoricalCounts, addUserTrigger, getUserTriggers } from '../services/db'
+import { addDrinkLog, getTodayDrinkCount, getHistoricalCounts, addUserTrigger, getUserTriggers, addUserReflection, getUserReflections, logMindfulnessSession } from '../services/db'
+import { getMindfulnessTip } from '../services/grok'
 import ContextForm from '../components/ContextForm.vue'
 
 // Reactive state for UI
@@ -140,9 +193,21 @@ const mindfulnessTabs = [
   { id: 'acceptance', label: 'Acceptance Strategies' },
   { id: 'intervention', label: 'Urge Surfing' }
 ]
+const timer = ref(0)
+const isTimerRunning = ref(false)
+const timerInterval = ref(null)
+const breathFeedback = ref('')
+const reflectionInput = ref('')
+const reflectionFeedback = ref('')
+const aiTip = ref('')
+const aiTipLoading = ref(false)
+const aiTipError = ref('')
+const stepsCompleted = ref([false, false, false])
+const userReflections = ref([])
+const streak = ref(0)
 
 // Reactive state for CBT section
-const showCbt = ref(false)
+const showCbt = ref(false) // Added to fix undefined error
 const activeCbtTab = ref('triggers')
 const cbtTabs = [
   { id: 'triggers', label: 'Trigger Identification' },
@@ -150,15 +215,134 @@ const cbtTabs = [
   { id: 'skills', label: 'Skills Training' }
 ]
 const triggerInput = ref('')
-const copingStrategyInput = ref('') // New: Input for coping strategy
+const copingStrategyInput = ref('')
 const thoughtInput = ref('')
 const copingFeedback = ref('')
 const reframedThought = ref('')
 const userTriggers = ref([])
 
+// Computed for all steps completed in urge surfing
+const allStepsCompleted = computed(() => stepsCompleted.value.every(step => step))
+
+// Computed for filtered reflections by current tab
+const filteredReflections = computed(() => 
+  userReflections.value.filter(refl => refl.exercise_type === activeMindfulnessTab.value)
+)
+
+// Timer display formatted as MM:SS
+const timerDisplay = computed(() => {
+  const minutes = Math.floor(timer.value / 60)
+  const seconds = timer.value % 60
+  return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`
+})
+
+// Start breath timer for 5 cycles of 4-4-4 (total 60 seconds)
+function startBreathTimer() {
+  if (isTimerRunning.value) return
+  isTimerRunning.value = true
+  timer.value = 60
+  breathFeedback.value = ''
+  timerInterval.value = setInterval(() => {
+    timer.value -= 1
+    if (timer.value <= 0) {
+      stopTimer()
+      breathFeedback.value = 'Well done! You completed the breathing exercise.'
+    }
+  }, 1000)
+  if ('speechSynthesis' in window) {
+    const utterance = new SpeechSynthesisUtterance('Inhale for 4, hold for 4, exhale for 4. Repeat 5 times.')
+    speechSynthesis.speak(utterance)
+  }
+}
+
+// Stop timer
+function stopTimer() {
+  clearInterval(timerInterval.value)
+  isTimerRunning.value = false
+}
+
+// Save user reflection
+async function saveReflection(exerciseType) {
+  if (reflectionInput.value) {
+    try {
+      await addUserReflection(reflectionInput.value, exerciseType)
+      reflectionFeedback.value = 'Reflection saved successfully!'
+      reflectionInput.value = ''
+      userReflections.value = await getUserReflections()
+      setTimeout(() => (reflectionFeedback.value = ''), 5000)
+    } catch (err) {
+      console.error('Error saving reflection:', err)
+      error.value = 'Failed to save reflection.'
+    }
+  }
+}
+
+// Fetch AI mindfulness tip
+async function fetchAiTip() {
+  try {
+    aiTipLoading.value = true
+    aiTipError.value = ''
+    const triggers = await getUserTriggers()
+    aiTip.value = await getMindfulnessTip(triggers)
+  } catch (err) {
+    console.error('Error fetching AI tip:', err)
+    aiTipError.value = 'Failed to load AI tip.'
+  } finally {
+    aiTipLoading.value = false
+  }
+}
+
+// Calculate and update streak
+async function updateStreak() {
+  try {
+    const today = new Date().toISOString().split('T')[0]
+    const sessions = await logMindfulnessSession()
+    const uniqueDates = [...new Set(sessions.map(s => s.session_date.split('T')[0]))].sort()
+    let currentStreak = 0
+    const todayDate = new Date(today)
+    for (let i = uniqueDates.length - 1; i >= 0; i--) {
+      const sessionDate = new Date(uniqueDates[i])
+      const diffDays = Math.floor((todayDate - sessionDate) / (1000 * 60 * 60 * 24))
+      if (diffDays === currentStreak) {
+        currentStreak++
+      } else if (diffDays > currentStreak) {
+        break
+      }
+    }
+    streak.value = currentStreak
+    localStorage.setItem('mindfulnessStreak', currentStreak)
+  } catch (err) {
+    console.error('Error updating streak:', err)
+    streak.value = 0
+  }
+}
+
 // Toggle mindfulness section visibility
 function toggleMindfulness() {
   showMindfulness.value = !showMindfulness.value
+  if (showMindfulness.value) {
+    fetchAiTip()
+    updateStreak()
+    getUserReflections().then(reflections => {
+      userReflections.value = reflections
+    }).catch(err => {
+      console.error('Error fetching reflections:', err)
+      error.value = 'Failed to load reflections.'
+    })
+  }
+}
+
+// Generate random tip (fallback for acceptance)
+function generateRandomTip(tab) {
+  if (tab === 'acceptance' && !aiTip.value) {
+    const tips = [
+      'Visualize your urge as a wave—it rises and falls naturally.',
+      'Label your thoughts gently: "This is just a craving thought."',
+      'Practice self-compassion: Be kind to yourself in this moment.',
+      'Focus on one sense: What do you hear or feel right now?'
+    ]
+    aiTip.value = tips[Math.floor(Math.random() * tips.length)]
+  }
 }
 
 // Toggle CBT section visibility
@@ -166,11 +350,11 @@ function toggleCbt() {
   showCbt.value = !showCbt.value
 }
 
-// Fetch user triggers when CBT section is opened (lazy load for performance)
+// Fetch user triggers when CBT section is opened
 watch(showCbt, async (newVal) => {
   if (newVal) {
     try {
-      userTriggers.value = await getUserTriggers() // Fetch from Supabase
+      userTriggers.value = await getUserTriggers()
     } catch (err) {
       console.error('Error fetching user triggers:', err)
       error.value = 'Failed to load saved triggers.'
@@ -178,22 +362,15 @@ watch(showCbt, async (newVal) => {
   }
 })
 
-// Handle adding a trigger and coping strategy
+// Handle adding a coping strategy for triggers
 async function addCopingStrategy() {
   if (triggerInput.value) {
     try {
-      // Save trigger and optional coping strategy to Supabase
       await addUserTrigger(triggerInput.value, copingStrategyInput.value || null)
-      
-      // Show feedback
       copingFeedback.value = `Saved trigger "${triggerInput.value}"${copingStrategyInput.value ? ` with strategy "${copingStrategyInput.value}"` : ''}.`
-      
-      // Clear inputs and refetch triggers
       triggerInput.value = ''
       copingStrategyInput.value = ''
       userTriggers.value = await getUserTriggers()
-      
-      // Clear feedback after 5 seconds
       setTimeout(() => (copingFeedback.value = ''), 5000)
     } catch (err) {
       console.error('Error saving trigger:', err)
@@ -234,6 +411,8 @@ onMounted(async () => {
   try {
     drinkCount.value = await getTodayDrinkCount()
     updateProgressMessage()
+    // Initialize streak from localStorage
+    streak.value = parseInt(localStorage.getItem('mindfulnessStreak') || '0')
   } catch (err) {
     console.error('Error fetching today\'s count:', err)
     error.value = 'Failed to load today\'s count.'
