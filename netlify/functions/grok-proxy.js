@@ -2,7 +2,99 @@
 // Netlify serverless function to proxy requests to Grok AI API
 // Updated to use faster 'grok-3' model and restore structured short paragraphs
 // Prompt enhanced for all user data with concise sections
-// Original error handling, logging, retries intact
+// WITH QUOTA ENFORCEMENT - Checks user tier and usage before allowing AI calls
+const { createClient } = require('@supabase/supabase-js')
+
+// Initialize Supabase client with service role for quota checking
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_SERVICE_ROLE_KEY
+)
+
+/**
+ * Check user's quota before allowing AI call
+ * Returns { allowed: boolean, quotaInfo: object }
+ */
+async function checkQuota(userId) {
+  try {
+    // Get user's quota info using SQL function
+    const { data, error } = await supabase.rpc('get_user_quota_info', {
+      p_user_id: userId
+    })
+
+    if (error) {
+      console.error('Quota check error:', error)
+      // On error, allow the call (fail open)
+      return { allowed: true, quotaInfo: null }
+    }
+
+    const quotaInfo = data || {}
+    const hasQuota = quotaInfo.remaining > 0
+
+    console.log('Quota check for user:', userId, quotaInfo)
+
+    return {
+      allowed: hasQuota,
+      quotaInfo: quotaInfo
+    }
+  } catch (error) {
+    console.error('Quota check exception:', error)
+    // Fail open
+    return { allowed: true, quotaInfo: null }
+  }
+}
+
+/**
+ * Track AI usage after successful call
+ */
+async function trackUsage(userId, requestType, tokensUsed) {
+  try {
+    const { error } = await supabase
+      .from('ai_usage')
+      .insert({
+        user_id: userId,
+        request_type: requestType === 'mainAdvice' ? 'dashboard' : 'mindfulness',
+        tokens_input: 0,
+        tokens_output: tokensUsed || 0,
+        cost_estimate: (tokensUsed || 0) * 15.00 / 1_000_000 // $15 per million tokens
+      })
+
+    if (error) {
+      console.error('Failed to track usage:', error)
+      // Non-critical, don't fail the request
+    } else {
+      console.log('Usage tracked for user:', userId, requestType)
+    }
+  } catch (error) {
+    console.error('Usage tracking exception:', error)
+  }
+}
+
+/**
+ * Get user ID from request (from Authorization header)
+ */
+async function getUserIdFromRequest(event) {
+  try {
+    const authHeader = event.headers.authorization || event.headers.Authorization
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      return null
+    }
+
+    const token = authHeader.substring(7)
+    const { data: { user }, error } = await supabase.auth.getUser(token)
+
+    if (error || !user) {
+      console.error('Failed to get user from token:', error)
+      return null
+    }
+
+    return user.id
+  } catch (error) {
+    console.error('Error extracting user ID:', error)
+    return null
+  }
+}
+
 exports.handler = async (event) => {
   console.log('Function invoked at:', new Date().toISOString())
   console.log('Raw event:', JSON.stringify(event, null, 2))
@@ -47,6 +139,22 @@ exports.handler = async (event) => {
     const { userData, requestType } = requestBody
     if (!requestType) {
       return sendResponse(400, { error: 'Missing requestType' })
+    }
+
+    // QUOTA ENFORCEMENT: Get user ID and check quota
+    const userId = await getUserIdFromRequest(event)
+    if (!userId) {
+      console.warn('No user ID found, proceeding without quota check')
+      // For backward compatibility, allow calls without auth (will add auth requirement later)
+    } else {
+      const { allowed, quotaInfo } = await checkQuota(userId)
+      if (!allowed) {
+        return sendResponse(429, {
+          error: 'Quota exceeded',
+          message: `You've used all ${quotaInfo.quota_limit} AI insights this month. ${quotaInfo.tier === 'free' ? 'Upgrade to Premium for 100 insights!' : 'Your quota resets soon.'}`,
+          quotaInfo: quotaInfo
+        })
+      }
     }
 
     // Restored prompt for structured short paragraphs using all user data
@@ -106,8 +214,14 @@ Keep it encouraging, concise, and supportive, aligned with CBT principles.`;
       console.warn('Grok API returned empty content:', data)
     }
 
-    return sendResponse(200, { 
-      [requestType === 'mainAdvice' ? 'advice' : 'response']: aiResponse 
+    // Track usage after successful AI call
+    if (userId) {
+      const tokensUsed = data.usage?.completion_tokens || 500 // Estimate if not provided
+      await trackUsage(userId, requestType, tokensUsed)
+    }
+
+    return sendResponse(200, {
+      [requestType === 'mainAdvice' ? 'advice' : 'response']: aiResponse
     });
   } catch (error) {
     console.error('Error in Grok proxy:', error.message, error.stack)
