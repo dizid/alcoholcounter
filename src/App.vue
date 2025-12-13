@@ -22,13 +22,30 @@ import MainMenu from './components/MainMenu.vue'
 const userStore = useUserStore()
 
 onMounted(async () => {
+  // First check if a session exists in localStorage
   const { data: { session } } = await supabase.auth.getSession()
+
   if (session) {
-    userStore.setUser(session.user)
-    setupNotifications()
+    // Session exists - validate it against server
+    const { data: { user }, error } = await supabase.auth.getUser()
+
+    if (!error && user) {
+      // Valid session
+      userStore.setUser(user)
+      setupNotifications()
+    } else {
+      // Session exists but is invalid/expired
+      console.warn('Session expired, clearing user state')
+      userStore.setUser(null)
+      await supabase.auth.signOut({ scope: 'local' })
+    }
+  } else {
+    // No session exists - user is logged out
+    userStore.setUser(null)
   }
 
-  supabase.auth.onAuthStateChange((_, session) => {
+  // Listen for auth state changes (login, logout, token refresh)
+  supabase.auth.onAuthStateChange((event, session) => {
     userStore.setUser(session?.user || null)
     if (session) setupNotifications()
   })

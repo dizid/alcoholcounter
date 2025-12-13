@@ -176,6 +176,7 @@ import { ref, watch, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { addDrinkLog, getTodayDrinkCount, getHistoricalCounts, addUserTrigger, getUserTriggers, addUserReflection, getUserReflections, logMindfulnessSession } from '../services/db'
 import { getMindfulnessTip } from '../services/grok'
+import { isAuthError, handleAuthError } from '../services/authErrorHandler'
 import ContextForm from '../components/ContextForm.vue'
 
 // Reactive state for UI
@@ -272,7 +273,14 @@ async function saveReflection(exerciseType) {
       setTimeout(() => (reflectionFeedback.value = ''), 5000)
     } catch (err) {
       console.error('Error saving reflection:', err)
-      error.value = 'Failed to save reflection.'
+
+      // Handle auth errors specifically
+      if (isAuthError(err)) {
+        await handleAuthError(err, 'saveReflection')
+        return
+      }
+
+      error.value = 'Failed to save reflection. Please try again.'
     }
   }
 }
@@ -374,7 +382,14 @@ async function addCopingStrategy() {
       setTimeout(() => (copingFeedback.value = ''), 5000)
     } catch (err) {
       console.error('Error saving trigger:', err)
-      error.value = 'Failed to save trigger.'
+
+      // Handle auth errors specifically
+      if (isAuthError(err)) {
+        await handleAuthError(err, 'addCopingStrategy')
+        return
+      }
+
+      error.value = 'Failed to save trigger. Please try again.'
     }
   }
 }
@@ -415,7 +430,14 @@ onMounted(async () => {
     streak.value = parseInt(localStorage.getItem('mindfulnessStreak') || '0')
   } catch (err) {
     console.error('Error fetching today\'s count:', err)
-    error.value = 'Failed to load today\'s count.'
+
+    // Handle auth errors specifically
+    if (isAuthError(err)) {
+      await handleAuthError(err, 'MainTracker.onMounted')
+      return
+    }
+
+    error.value = 'Failed to load today\'s count. Please try again.'
   }
 })
 
@@ -429,7 +451,15 @@ async function handleAddDrink(context) {
     error.value = ''
   } catch (err) {
     console.error('Error adding drink:', err)
-    error.value = 'Failed to add drink.'
+
+    // Handle auth errors specifically
+    if (isAuthError(err)) {
+      await handleAuthError(err, 'handleAddDrink')
+      return // User will be redirected
+    }
+
+    // Other errors
+    error.value = 'Failed to add drink. Please try again.'
   }
 }
 

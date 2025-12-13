@@ -30,17 +30,9 @@ export async function loginWithProvider(provider) {
 
 // Function for logout
 export async function logout() {
-  try {
-    // Sign out from Supabase
-    const { error } = await supabase.auth.signOut()
-    if (error) {
-      console.error('Supabase signOut error:', error.message)
-      throw new Error('Failed to log out. Please try again.')
-    }
-    // Refresh session to clear local data
-    await supabase.auth.refreshSession()
-  } catch (err) {
-    console.error('Logout error:', err.message)
-    throw new Error('Logout failed. Please check your connection and try again.')
+  const { error } = await supabase.auth.signOut()
+  if (error) {
+    console.error('Supabase signOut error:', error.message)
+    throw new Error('Failed to log out. Please try again.')
   }
 }

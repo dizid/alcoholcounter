@@ -28,6 +28,8 @@ import { marked } from 'marked'
 import PulseLoader from 'vue-spinner/src/PulseLoader.vue'
 import { getHistoricalCounts, getContextFrequencies, getUserTriggers, getUserReflections } from '../services/db'
 import { getGrokAdvice } from '../services/grok'
+import { logout } from '../services/auth'
+import { isAuthError, handleAuthError } from '../services/authErrorHandler'
 
 const router = useRouter()
 const aiAdvice = ref('No AI advice')
@@ -52,7 +54,7 @@ async function loadData() {
     const userTriggers = await getUserTriggers()
     const contextFrequencies = await getContextFrequencies()
     const userReflections = await getUserReflections()
-    
+
     const userData = {
       triggers: userTriggers,
       historicalDrinkingPatterns: historicalCounts,
@@ -66,7 +68,14 @@ async function loadData() {
     aiAdvice.value = advice || 'No AI advice - API may be limited or misconfigured.'
   } catch (err) {
     console.error('Load data error:', err)
-    aiError.value = `Failed to load AI advice: ${err.message}. Contact support if persistent.`
+
+    // Handle auth errors specifically
+    if (isAuthError(err)) {
+      await handleAuthError(err, 'Dashboard.loadData')
+      return
+    }
+
+    aiError.value = `Failed to load data: ${err.message}`
   } finally {
     aiLoading.value = false
   }
@@ -182,7 +191,7 @@ function goToMain() {
 async function handleLogout() {
   try {
     await logout()
-    router.push('/')
+    router.push('/login')
     error.value = ''
   } catch (err) {
     console.error('Error logging out:', err)

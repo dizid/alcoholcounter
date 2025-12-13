@@ -4,7 +4,12 @@
   <div class="container">
     <h1>Alcohol Support Tracker</h1>
     <p>Login or create an account to start tracking.</p>
-    
+
+    <!-- Warning message for session expiry -->
+    <div v-if="redirectMessage" class="warning-message">
+      {{ redirectMessage }}
+    </div>
+
     <!-- Form for email/password login -->
     <form @submit.prevent="handleLogin">
       <input v-model="email" type="email" placeholder="Email" required />
@@ -33,24 +38,41 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, onMounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { login, signUp, loginWithProvider } from '../services/auth'
 
 const router = useRouter()
+const route = useRoute()
 const email = ref('')
 const password = ref('')
 const error = ref('')
 const message = ref('')
 const isLoading = ref(false) // Track loading state for buttons
 const isGoogleLoading = ref(false) // Track Google login loading state
+const redirectMessage = ref('')
+const redirectPath = ref('/')
+
+onMounted(() => {
+  // Show message if redirected due to auth error
+  if (route.query.error === 'session_expired') {
+    redirectMessage.value = route.query.message ||
+      'Your session has expired. Please log in again.'
+  }
+
+  // Store redirect path
+  if (route.query.redirect) {
+    redirectPath.value = route.query.redirect
+  }
+})
 
 async function handleLogin() {
   isLoading.value = true // Disable buttons during login
   try {
     await login(email.value, password.value)
     message.value = ''
-    router.push('/')
+    // Redirect to original page or home
+    router.push(redirectPath.value || '/')
   } catch (err) {
     error.value = err.message
     message.value = ''
@@ -124,5 +146,15 @@ async function loginWithGoogle() {
   100% {
     transform: rotate(360deg);
   }
+}
+
+/* Warning message for session expiry */
+.warning-message {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  color: #856404;
+  padding: 12px;
+  border-radius: 4px;
+  margin-bottom: 16px;
 }
 </style>

@@ -5,13 +5,14 @@ import Feedback from './views/Feedback.vue'
 import Login from './views/Login.vue'
 import AboutTracker from './views/AboutTracker.vue' // New import for AboutTracker page
 import { useUserStore } from './stores/user'
+import { supabase } from './supabase'
 
 const routes = [
-  { path: '/', component: MainTracker },
-  { path: '/dashboard', component: Dashboard },
-  { path: '/feedback', component: Feedback },
-  { path: '/about-tracker', component: AboutTracker }, // New route for AboutTracker
-  { path: '/login', component: Login },
+  { path: '/', component: MainTracker, meta: { requiresAuth: true } },
+  { path: '/dashboard', component: Dashboard, meta: { requiresAuth: true } },
+  { path: '/feedback', component: Feedback, meta: { requiresAuth: true } },
+  { path: '/about-tracker', component: AboutTracker, meta: { requiresAuth: true } },
+  { path: '/login', component: Login, meta: { requiresAuth: false } },
 ]
 
 const router = createRouter({
@@ -20,10 +21,37 @@ const router = createRouter({
 })
 
 // Auth guard: redirect to login if not authenticated
-router.beforeEach((to, from, next) => {
+router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore()
-  if (to.meta.requiresAuth && !userStore.user) {
-    next('/login')
+
+  if (to.meta.requiresAuth) {
+    if (!userStore.user) {
+      // No user in store - check if session exists first
+      const { data: { session } } = await supabase.auth.getSession()
+
+      if (session) {
+        // Session exists - validate it against server
+        const { data: { user }, error } = await supabase.auth.getUser()
+
+        if (!error && user) {
+          // Valid session - update store and allow through
+          userStore.setUser(user)
+          next()
+          return
+        } else {
+          // Session invalid/expired - clear it
+          await supabase.auth.signOut({ scope: 'local' })
+        }
+      }
+
+      // No valid session - redirect to login
+      next({
+        path: '/login',
+        query: { redirect: to.fullPath }
+      })
+      return
+    }
+    next()
   } else {
     next()
   }
