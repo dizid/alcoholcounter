@@ -1,4 +1,7 @@
 <template>
+  <!-- Onboarding modal for first-time users -->
+  <Onboarding v-if="showOnboarding" @complete="handleOnboardingComplete" />
+
   <!-- Main container for the daily drink tracker UI -->
   <article class="main-container">
     <h1>Daily Drink Tracker</h1>
@@ -10,155 +13,138 @@
       <button @click="saveDrink" class="save-button">Save</button>
     </div>
     
-    <!-- Collapsible mindfulness section -->
-    <div class="mindfulness-section">
-      <button @click="toggleMindfulness" class="mindfulness-button">
-        {{ showMindfulness ? 'Hide Mindful Pause' : 'Mindful Pause' }}
-        <span v-if="streak > 0" class="streak-counter">Streak: {{ streak }} days</span>
-      </button>
-      <div v-if="showMindfulness" class="mindfulness-content">
-        <!-- Tabs for mindfulness approaches -->
-        <div class="mindfulness-tabs">
-          <button 
-            v-for="tab in mindfulnessTabs" 
-            :key="tab.id" 
-            @click="activeMindfulnessTab = tab.id" 
-            :class="{ 'active-tab': activeMindfulnessTab === tab.id }"
-          >
-            {{ tab.label }}
-          </button>
-        </div>
-        <!-- Mindfulness tab content: Present-Moment Awareness with timer -->
-        <div v-if="activeMindfulnessTab === 'awareness'" class="tab-content">
-          <h3>Breathing Exercise</h3>
-          <p>Focus on your breath: Inhale for 4 counts, hold for 4, exhale for 4. Repeat 5 times.</p>
-          <button @click="startBreathTimer" class="action-button" :disabled="isTimerRunning">Start Timer</button>
-          <p v-if="timerDisplay" class="timer-display">{{ timerDisplay }}</p>
-          <p v-if="breathFeedback" class="success">{{ breathFeedback }}</p>
-          <!-- Reflection input -->
-          <textarea v-model="reflectionInput" placeholder="How did this exercise make you feel? (Optional reflection)"></textarea>
-          <button @click="saveReflection('awareness')" class="action-button" :disabled="!reflectionInput">Save Reflection</button>
-          <p v-if="reflectionFeedback" class="success">{{ reflectionFeedback }}</p>
-          <!-- Reflections list -->
-          <h4 v-if="filteredReflections.length > 0">Your Reflections</h4>
-          <ul class="reflection-list" v-if="filteredReflections.length > 0">
-            <li v-for="refl in filteredReflections" :key="refl.id">
-              {{ refl.reflection_text }} - {{ new Date(refl.created_at).toLocaleString() }}
-            </li>
-          </ul>
-          <p v-else class="info">No reflections saved yet for this exercise.</p>
-        </div>
-        <!-- Mindfulness tab content: Acceptance Strategies with AI tip -->
-        <div v-if="activeMindfulnessTab === 'acceptance'" class="tab-content">
-          <h3>Accept the Urge</h3>
-          <p>Acknowledge the craving: "I notice an urge to drink, and that's okay. It will pass."</p>
-          <p>Visualize thoughts as clouds drifting by—observe, don't engage.</p>
-          <p v-if="aiTipLoading" class="info">Loading AI tip...</p>
-          <p v-else-if="aiTipError" class="error">{{ aiTipError }}</p>
-          <p v-else><strong>AI Tip:</strong> {{ aiTip }}</p>
-          <button @click="fetchAiTip" class="action-button">Get Another AI Tip</button>
-          <!-- Reflection input -->
-          <textarea v-model="reflectionInput" placeholder="How did this exercise make you feel? (Optional reflection)"></textarea>
-          <button @click="saveReflection('acceptance')" class="action-button" :disabled="!reflectionInput">Save Reflection</button>
-          <p v-if="reflectionFeedback" class="success">{{ reflectionFeedback }}</p>
-          <!-- Reflections list -->
-          <h4 v-if="filteredReflections.length > 0">Your Reflections</h4>
-          <ul class="reflection-list" v-if="filteredReflections.length > 0">
-            <li v-for="refl in filteredReflections" :key="refl.id">
-              {{ refl.reflection_text }} - {{ new Date(refl.created_at).toLocaleString() }}
-            </li>
-          </ul>
-          <p v-else class="info">No reflections saved yet for this exercise.</p>
-        </div>
-        <!-- Mindfulness tab content: Urge Surfing with interactive steps -->
-        <div v-if="activeMindfulnessTab === 'intervention'" class="tab-content">
-          <h3>Urge Surfing</h3>
-          <p>Ride the wave of your urge. Follow these steps:</p>
-          <ul class="step-list">
-            <li>
-              <input type="checkbox" id="step1" v-model="stepsCompleted[0]" />
-              <label for="step1">Describe the urge (intensity, location in body).</label>
-            </li>
-            <li>
-              <input type="checkbox" id="step2" v-model="stepsCompleted[1]" />
-              <label for="step2">Watch it peak and fade over 1-2 minutes.</label>
-            </li>
-            <li>
-              <input type="checkbox" id="step3" v-model="stepsCompleted[2]" />
-              <label for="step3">Remind yourself: "This is temporary; I can choose differently."</label>
-            </li>
-          </ul>
-          <p v-if="allStepsCompleted" class="success">Great job completing the steps!</p>
-          <!-- Reflection input -->
-          <textarea v-model="reflectionInput" placeholder="How did this exercise make you feel? (Optional reflection)"></textarea>
-          <button @click="saveReflection('intervention')" class="action-button" :disabled="!reflectionInput">Save Reflection</button>
-          <p v-if="reflectionFeedback" class="success">{{ reflectionFeedback }}</p>
-          <!-- Reflections list -->
-          <h4 v-if="filteredReflections.length > 0">Your Reflections</h4>
-          <ul class="reflection-list" v-if="filteredReflections.length > 0">
-            <li v-for="refl in filteredReflections" :key="refl.id">
-              {{ refl.reflection_text }} - {{ new Date(refl.created_at).toLocaleString() }}
-            </li>
-          </ul>
-          <p v-else class="info">No reflections saved yet for this exercise.</p>
-        </div>
+    <!-- Weekly goal progress (if set) -->
+    <div v-if="weeklyGoal !== null" class="goal-progress-card">
+      <div class="goal-header">
+        <span class="goal-label">Weekly Goal</span>
+        <span class="goal-value">{{ weeklyDrinkCount }}/{{ weeklyGoal }}</span>
       </div>
+      <div class="goal-bar-bg">
+        <div class="goal-bar-fill" :style="{ width: goalProgressPercent + '%' }" :class="{ over: weeklyDrinkCount > weeklyGoal }"></div>
+      </div>
+      <p class="goal-status" :class="{ success: weeklyDrinkCount <= weeklyGoal, warning: weeklyDrinkCount > weeklyGoal }">
+        {{ goalStatusMessage }}
+      </p>
     </div>
-    
-    <!-- Collapsible CBT section -->
-    <div class="cbt-section">
-      <button @click="toggleCbt" class="cbt-button">
-        {{ showCbt ? 'Hide CBT Strategies' : 'CBT Strategies' }}
+
+    <!-- Support tools section - collapsed by default for simpler UI -->
+    <div class="support-section">
+      <button @click="toggleSupportTools" class="support-toggle-btn" aria-expanded="showSupportTools">
+        <span class="support-icon">{{ showSupportTools ? '-' : '+' }}</span>
+        {{ showSupportTools ? 'Hide Support Tools' : 'Need Support?' }}
+        <span v-if="streak > 0" class="streak-badge">{{ streak }} day streak</span>
       </button>
-      <div v-if="showCbt" class="cbt-content">
-        <!-- Tabs for CBT techniques -->
-        <div class="cbt-tabs">
-          <button 
-            v-for="tab in cbtTabs" 
-            :key="tab.id" 
-            @click="activeCbtTab = tab.id" 
-            :class="{ 'active-tab': activeCbtTab === tab.id }"
-          >
-            {{ tab.label }}
+
+      <div v-if="showSupportTools" class="support-content">
+        <p class="support-intro">Choose a tool to help manage cravings:</p>
+
+        <!-- Quick action cards -->
+        <div class="support-cards">
+          <button @click="activeSupportTool = 'breathing'" :class="['support-card', { active: activeSupportTool === 'breathing' }]">
+            <span class="card-icon breathing-icon">~</span>
+            <span class="card-title">Breathing</span>
+            <span class="card-desc">Calm your mind</span>
+          </button>
+
+          <button @click="activeSupportTool = 'urge'" :class="['support-card', { active: activeSupportTool === 'urge' }]">
+            <span class="card-icon urge-icon">^</span>
+            <span class="card-title">Urge Surfing</span>
+            <span class="card-desc">Ride the wave</span>
+          </button>
+
+          <button @click="activeSupportTool = 'triggers'" :class="['support-card', { active: activeSupportTool === 'triggers' }]">
+            <span class="card-icon trigger-icon">!</span>
+            <span class="card-title">Triggers</span>
+            <span class="card-desc">Know your patterns</span>
+          </button>
+
+          <button @click="activeSupportTool = 'reframe'" :class="['support-card', { active: activeSupportTool === 'reframe' }]">
+            <span class="card-icon reframe-icon">?</span>
+            <span class="card-title">Reframe</span>
+            <span class="card-desc">Change thoughts</span>
           </button>
         </div>
-        <!-- CBT tab content: Trigger Identification -->
-        <div v-if="activeCbtTab === 'triggers'" class="tab-content">
-          <h3>Identify Your Triggers</h3>
-          <p>Pinpoint what prompts your urge to drink and plan a healthier response.</p>
-          <form @submit.prevent="addCopingStrategy" class="trigger-form">
-            <label for="trigger-input">Trigger (e.g., Feeling stressed after work):</label>
-            <input id="trigger-input" v-model="triggerInput" placeholder="Enter your trigger" required />
-            <label for="coping-input">Coping Strategy (e.g., Take a walk):</label>
-            <input id="coping-input" v-model="copingStrategyInput" placeholder="Enter a coping strategy" />
-            <button type="submit" :disabled="!triggerInput" class="action-button">Save Trigger & Strategy</button>
-          </form>
-          <p v-if="copingFeedback" class="success">{{ copingFeedback }}</p>
-          <!-- Display list of saved triggers and coping strategies -->
-          <h4 v-if="userTriggers.length > 0">Your Saved Triggers</h4>
-          <ul class="trigger-list" v-if="userTriggers.length > 0">
-            <li v-for="trig in userTriggers" :key="trig.id">
-              <strong>Trigger:</strong> {{ trig.trigger_text }} 
-              <span v-if="trig.coping_strategy">| <strong>Strategy:</strong> {{ trig.coping_strategy }}</span>
-              <span> - {{ new Date(trig.created_at).toLocaleString() }}</span>
-            </li>
-          </ul>
-          <p v-else class="info">No triggers saved yet. Add one above!</p>
-        </div>
-        <!-- CBT tab content: Thought Reframing -->
-        <div v-if="activeCbtTab === 'reframing'" class="tab-content">
-          <h3>Challenge and Reframe Thoughts</h3>
-          <p>Identify a negative thought (e.g., "I need to drink to relax") and reframe it (e.g., "I can relax with deep breathing").</p>
-          <input v-model="thoughtInput" placeholder="Enter a negative thought" />
-          <button @click="reframeThought" :disabled="!thoughtInput" class="action-button">Reframe Thought</button>
-          <p v-if="reframedThought" class="success">{{ reframedThought }}</p>
-        </div>
-        <!-- CBT tab content: Skills Training -->
-        <div v-if="activeCbtTab === 'skills'" class="tab-content">
-          <h3>Skills for High-Risk Situations</h3>
-          <p>Practice refusing a drink: "No thanks, I'm good with water."</p>
-          <p><strong>Exercise</strong>: Imagine a social event. Plan how to say no or choose a non-alcoholic drink.</p>
-          <p>Try deep breathing to manage cravings: Inhale for 4, exhale for 4, repeat 3 times.</p>
+
+        <!-- Tool content based on selection -->
+        <div v-if="activeSupportTool" class="tool-content">
+          <!-- Breathing Exercise -->
+          <div v-if="activeSupportTool === 'breathing'" class="tool-panel">
+            <h3>Breathing Exercise</h3>
+            <p>Inhale for 4 counts, hold for 4, exhale for 4. Repeat 5 times.</p>
+            <button @click="startBreathTimer" class="action-button" :disabled="isTimerRunning">
+              {{ isTimerRunning ? 'Breathing...' : 'Start Timer' }}
+            </button>
+            <p v-if="timerDisplay && isTimerRunning" class="timer-display">{{ timerDisplay }}</p>
+            <p v-if="breathFeedback" class="success">{{ breathFeedback }}</p>
+
+            <div class="reflection-section">
+              <textarea v-model="reflectionInput" placeholder="How do you feel? (optional)" rows="2"></textarea>
+              <button @click="saveReflection('awareness')" class="secondary-button" :disabled="!reflectionInput">Save Reflection</button>
+              <p v-if="reflectionFeedback" class="success">{{ reflectionFeedback }}</p>
+            </div>
+          </div>
+
+          <!-- Urge Surfing -->
+          <div v-if="activeSupportTool === 'urge'" class="tool-panel">
+            <h3>Urge Surfing</h3>
+            <p class="tool-explanation">Cravings are like waves - they rise, peak, and fall. Observe without acting.</p>
+            <ul class="step-list">
+              <li>
+                <input type="checkbox" id="step1" v-model="stepsCompleted[0]" />
+                <label for="step1">Notice where you feel the urge in your body</label>
+              </li>
+              <li>
+                <input type="checkbox" id="step2" v-model="stepsCompleted[1]" />
+                <label for="step2">Watch it peak and fade (1-2 minutes)</label>
+              </li>
+              <li>
+                <input type="checkbox" id="step3" v-model="stepsCompleted[2]" />
+                <label for="step3">Remind yourself: "This will pass"</label>
+              </li>
+            </ul>
+            <p v-if="allStepsCompleted" class="success">Great job riding the wave!</p>
+
+            <div class="reflection-section">
+              <textarea v-model="reflectionInput" placeholder="How do you feel? (optional)" rows="2"></textarea>
+              <button @click="saveReflection('intervention')" class="secondary-button" :disabled="!reflectionInput">Save Reflection</button>
+            </div>
+          </div>
+
+          <!-- Trigger Identification -->
+          <div v-if="activeSupportTool === 'triggers'" class="tool-panel">
+            <h3>Identify Triggers</h3>
+            <p class="tool-explanation">Understanding what triggers cravings helps you prepare healthy responses.</p>
+            <form @submit.prevent="addCopingStrategy" class="trigger-form">
+              <input v-model="triggerInput" placeholder="What triggered this urge?" required />
+              <input v-model="copingStrategyInput" placeholder="How could you cope differently?" />
+              <button type="submit" :disabled="!triggerInput" class="action-button">Save</button>
+            </form>
+            <p v-if="copingFeedback" class="success">{{ copingFeedback }}</p>
+
+            <div v-if="userTriggers.length > 0" class="saved-triggers">
+              <h4>Your Triggers</h4>
+              <ul class="trigger-list">
+                <li v-for="trig in userTriggers.slice(0, 3)" :key="trig.id">
+                  <strong>{{ trig.trigger_text }}</strong>
+                  <span v-if="trig.coping_strategy"> - {{ trig.coping_strategy }}</span>
+                </li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Thought Reframing -->
+          <div v-if="activeSupportTool === 'reframe'" class="tool-panel">
+            <h3>Reframe Thoughts</h3>
+            <p class="tool-explanation">Challenge unhelpful thoughts with more balanced alternatives.</p>
+            <input v-model="thoughtInput" placeholder="Enter a negative thought" />
+            <button @click="reframeThought" :disabled="!thoughtInput" class="action-button">Reframe</button>
+            <p v-if="reframedThought" class="success reframed-thought">{{ reframedThought }}</p>
+
+            <div class="ai-tip-section" v-if="aiTip">
+              <p><strong>AI Tip:</strong> {{ aiTip }}</p>
+              <button @click="fetchAiTip" class="secondary-button">Get Another Tip</button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -177,7 +163,9 @@ import { useRouter } from 'vue-router'
 import { addDrinkLog, getTodayDrinkCount, getHistoricalCounts, addUserTrigger, getUserTriggers, addUserReflection, getUserReflections, logMindfulnessSession } from '../services/db'
 import { getMindfulnessTip } from '../services/grok'
 import { isAuthError, handleAuthError } from '../services/authErrorHandler'
+import { supabase } from '../supabase'
 import ContextForm from '../components/ContextForm.vue'
+import Onboarding from '../components/Onboarding.vue'
 
 // Reactive state for UI
 const router = useRouter()
@@ -185,15 +173,13 @@ const drinkCount = ref(0)
 const showContextForm = ref(false)
 const progressMessage = ref('')
 const error = ref('')
+const showOnboarding = ref(false)
+const weeklyGoal = ref(null)
 
-// Reactive state for mindfulness section
-const showMindfulness = ref(false)
-const activeMindfulnessTab = ref('awareness')
-const mindfulnessTabs = [
-  { id: 'awareness', label: 'Present-Moment Awareness' },
-  { id: 'acceptance', label: 'Acceptance Strategies' },
-  { id: 'intervention', label: 'Urge Surfing' }
-]
+// Reactive state for support tools (progressive disclosure)
+const showSupportTools = ref(false)
+const activeSupportTool = ref(null)
+const weeklyDrinkCount = ref(0)
 const timer = ref(0)
 const isTimerRunning = ref(false)
 const timerInterval = ref(null)
@@ -207,14 +193,7 @@ const stepsCompleted = ref([false, false, false])
 const userReflections = ref([])
 const streak = ref(0)
 
-// Reactive state for CBT section
-const showCbt = ref(false) // Added to fix undefined error
-const activeCbtTab = ref('triggers')
-const cbtTabs = [
-  { id: 'triggers', label: 'Trigger Identification' },
-  { id: 'reframing', label: 'Thought Reframing' },
-  { id: 'skills', label: 'Skills Training' }
-]
+// Reactive state for CBT tools
 const triggerInput = ref('')
 const copingStrategyInput = ref('')
 const thoughtInput = ref('')
@@ -225,10 +204,30 @@ const userTriggers = ref([])
 // Computed for all steps completed in urge surfing
 const allStepsCompleted = computed(() => stepsCompleted.value.every(step => step))
 
-// Computed for filtered reflections by current tab
-const filteredReflections = computed(() => 
-  userReflections.value.filter(refl => refl.exercise_type === activeMindfulnessTab.value)
-)
+// Computed for goal progress
+const goalProgressPercent = computed(() => {
+  if (weeklyGoal.value === null || weeklyGoal.value === 0) return 0
+  return Math.min((weeklyDrinkCount.value / weeklyGoal.value) * 100, 100)
+})
+
+const goalStatusMessage = computed(() => {
+  if (weeklyGoal.value === null) return ''
+  const remaining = weeklyGoal.value - weeklyDrinkCount.value
+  if (remaining > 0) {
+    return `${remaining} drinks left this week - you're on track!`
+  } else if (remaining === 0) {
+    return "You've reached your weekly goal - stay mindful!"
+  } else {
+    return `${Math.abs(remaining)} over your goal - tomorrow is a fresh start`
+  }
+})
+
+// Computed for filtered reflections by current tool
+const filteredReflections = computed(() => {
+  const toolMap = { 'breathing': 'awareness', 'urge': 'intervention' }
+  const exerciseType = toolMap[activeSupportTool.value] || activeSupportTool.value
+  return userReflections.value.filter(refl => refl.exercise_type === exerciseType)
+})
 
 // Timer display formatted as MM:SS
 const timerDisplay = computed(() => {
@@ -325,10 +324,10 @@ async function updateStreak() {
   }
 }
 
-// Toggle mindfulness section visibility
-function toggleMindfulness() {
-  showMindfulness.value = !showMindfulness.value
-  if (showMindfulness.value) {
+// Toggle support tools section visibility
+function toggleSupportTools() {
+  showSupportTools.value = !showSupportTools.value
+  if (showSupportTools.value) {
     fetchAiTip()
     updateStreak()
     getUserReflections().then(reflections => {
@@ -337,38 +336,13 @@ function toggleMindfulness() {
       console.error('Error fetching reflections:', err)
       error.value = 'Failed to load reflections.'
     })
+    getUserTriggers().then(triggers => {
+      userTriggers.value = triggers
+    }).catch(err => {
+      console.error('Error fetching triggers:', err)
+    })
   }
 }
-
-// Generate random tip (fallback for acceptance)
-function generateRandomTip(tab) {
-  if (tab === 'acceptance' && !aiTip.value) {
-    const tips = [
-      'Visualize your urge as a wave—it rises and falls naturally.',
-      'Label your thoughts gently: "This is just a craving thought."',
-      'Practice self-compassion: Be kind to yourself in this moment.',
-      'Focus on one sense: What do you hear or feel right now?'
-    ]
-    aiTip.value = tips[Math.floor(Math.random() * tips.length)]
-  }
-}
-
-// Toggle CBT section visibility
-function toggleCbt() {
-  showCbt.value = !showCbt.value
-}
-
-// Fetch user triggers when CBT section is opened
-watch(showCbt, async (newVal) => {
-  if (newVal) {
-    try {
-      userTriggers.value = await getUserTriggers()
-    } catch (err) {
-      console.error('Error fetching user triggers:', err)
-      error.value = 'Failed to load saved triggers.'
-    }
-  }
-})
 
 // Handle adding a coping strategy for triggers
 async function addCopingStrategy() {
@@ -421,11 +395,58 @@ async function getAverageDailyDrinks() {
   }
 }
 
+// Fetch weekly drink count for goal tracking
+async function fetchWeeklyDrinkCount() {
+  try {
+    const counts = await getHistoricalCounts(7)
+    weeklyDrinkCount.value = Object.values(counts).reduce((sum, count) => sum + count, 0)
+  } catch (err) {
+    console.error('Error fetching weekly count:', err)
+    weeklyDrinkCount.value = 0
+  }
+}
+
+// Check if user has completed onboarding
+async function checkOnboardingStatus() {
+  try {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (user) {
+      // Check user metadata for onboarding flag
+      const hasCompletedOnboarding = user.user_metadata?.has_completed_onboarding === true
+      showOnboarding.value = !hasCompletedOnboarding
+
+      // Load user's weekly goal if set
+      if (user.user_metadata?.weekly_goal !== undefined) {
+        weeklyGoal.value = user.user_metadata.weekly_goal
+      }
+    }
+  } catch (err) {
+    console.error('Error checking onboarding status:', err)
+    // Don't show onboarding on error - let user use app
+    showOnboarding.value = false
+  }
+}
+
+// Handle onboarding completion
+function handleOnboardingComplete(data) {
+  showOnboarding.value = false
+  if (data?.goal !== null) {
+    weeklyGoal.value = data.goal
+  }
+}
+
 // Initialize component data
 onMounted(async () => {
   try {
+    // Check onboarding status first
+    await checkOnboardingStatus()
+
     drinkCount.value = await getTodayDrinkCount()
     updateProgressMessage()
+
+    // Fetch weekly count for goal progress
+    await fetchWeeklyDrinkCount()
+
     // Initialize streak from localStorage
     streak.value = parseInt(localStorage.getItem('mindfulnessStreak') || '0')
   } catch (err) {

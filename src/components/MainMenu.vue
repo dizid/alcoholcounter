@@ -11,10 +11,10 @@
     <ul :class="{ 'nav-links': true, 'nav-links-open': isMenuOpen }">
       <template v-if="userStore.user">
         <!-- Links shown when logged in -->
-        <li><router-link to="/" class="nav-link" @click="closeMenu">Tracker</router-link></li>
-        <li><router-link to="/dashboard" class="nav-link" @click="closeMenu">Dashboard</router-link></li>
-        <li><router-link to="/feedback" class="nav-link" @click="closeMenu">Feedback</router-link></li>
-        <li><router-link to="/about-tracker" class="nav-link" @click="closeMenu">Background</router-link></li>
+        <li><router-link to="/" class="nav-link" @click="closeMenu"><span class="nav-icon">+</span> Track</router-link></li>
+        <li><router-link to="/dashboard" class="nav-link" @click="closeMenu"><span class="nav-icon">=</span> Dashboard</router-link></li>
+        <li><router-link to="/about-tracker" class="nav-link" @click="closeMenu"><span class="nav-icon">i</span> About</router-link></li>
+        <li><router-link to="/feedback" class="nav-link" @click="closeMenu"><span class="nav-icon">?</span> Feedback</router-link></li>
         <li><button @click="handleLogout" class="nav-button">Logout</button></li>
       </template>
       <template v-else>
