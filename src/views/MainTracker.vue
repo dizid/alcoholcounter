@@ -7,11 +7,25 @@
     <h1>Daily Drink Tracker</h1>
     <p>Current drinks today: {{ drinkCount }}</p>
     <p>{{ progressMessage }}</p>
-    <!-- Navigation buttons with horizontal spacing -->
-    <div class="button-group">
-      <button @click="showContextForm = true" class="add-drink-button">+ Add Drink</button>
-      <button @click="saveDrink" class="save-button">Save</button>
+    <!-- Quick actions for logging drinks -->
+    <div class="drink-actions">
+      <button @click="quickLog" class="quick-log-btn">
+        <span class="btn-icon">+1</span>
+        <span class="btn-text">Quick Log</span>
+      </button>
+      <button @click="showContextForm = true" class="details-btn">
+        <span class="btn-icon">+</span>
+        <span class="btn-text">With Details</span>
+      </button>
     </div>
+
+    <!-- Success feedback toast -->
+    <transition name="toast">
+      <div v-if="showSuccess" class="success-toast">
+        <span class="toast-icon">&#10003;</span>
+        <span>{{ successMessage }}</span>
+      </div>
+    </transition>
     
     <!-- Weekly goal progress (if set) -->
     <div v-if="weeklyGoal !== null" class="goal-progress-card">
@@ -150,7 +164,7 @@
     </div>
     
     <!-- Conditionally render the context form component -->
-    <ContextForm v-if="showContextForm" @submit="handleAddDrink" @cancel="showContextForm = false" />   
+    <ContextForm v-if="showContextForm" @submit="handleAddDrinkWithContext" @cancel="showContextForm = false" />   
     
     <!-- Display error message if any -->
     <p v-if="error" class="error">{{ error }}</p>
@@ -158,7 +172,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted, computed } from 'vue'
+import { ref, watch, onMounted, computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
 import { addDrinkLog, getTodayDrinkCount, getHistoricalCounts, addUserTrigger, getUserTriggers, addUserReflection, getUserReflections, logMindfulnessSession } from '../services/db'
 import { getMindfulnessTip } from '../services/grok'
@@ -166,6 +180,18 @@ import { isAuthError, handleAuthError } from '../services/authErrorHandler'
 import { supabase } from '../supabase'
 import ContextForm from '../components/ContextForm.vue'
 import Onboarding from '../components/Onboarding.vue'
+
+// Inject quick log trigger from App.vue (for notification-based logging)
+const quickLogTrigger = inject('quickLogTrigger', ref(0))
+
+// Watch for quick log triggers from notifications
+watch(quickLogTrigger, async () => {
+  // Refresh data when a drink was logged via notification
+  drinkCount.value = await getTodayDrinkCount()
+  await fetchWeeklyDrinkCount()
+  updateProgressMessage()
+  showSuccessFeedback('Drink logged from notification!')
+})
 
 // Reactive state for UI
 const router = useRouter()
@@ -175,6 +201,8 @@ const progressMessage = ref('')
 const error = ref('')
 const showOnboarding = ref(false)
 const weeklyGoal = ref(null)
+const showSuccess = ref(false)
+const successMessage = ref('Drink logged!')
 
 // Reactive state for support tools (progressive disclosure)
 const showSupportTools = ref(false)
@@ -462,13 +490,45 @@ onMounted(async () => {
   }
 })
 
-// Handle adding a new drink
-async function handleAddDrink(context) {
+// Quick log a single drink without context
+async function quickLog() {
   try {
-    await addDrinkLog(context)
+    await addDrinkLog({})
     drinkCount.value += 1
+    await fetchWeeklyDrinkCount()
+    updateProgressMessage()
+    showSuccessFeedback('Drink logged!')
+    // Haptic feedback on mobile
+    if ('vibrate' in navigator) {
+      navigator.vibrate(50)
+    }
+    error.value = ''
+  } catch (err) {
+    console.error('Error quick logging drink:', err)
+    if (isAuthError(err)) {
+      await handleAuthError(err, 'quickLog')
+      return
+    }
+    error.value = 'Failed to log drink. Please try again.'
+  }
+}
+
+// Handle adding a new drink with context (and optional quantity)
+async function handleAddDrink(context, quantity = 1) {
+  try {
+    // Log multiple drinks if quantity > 1
+    for (let i = 0; i < quantity; i++) {
+      await addDrinkLog(context)
+    }
+    drinkCount.value += quantity
+    await fetchWeeklyDrinkCount()
     updateProgressMessage()
     showContextForm.value = false
+    showSuccessFeedback(quantity > 1 ? `${quantity} drinks logged!` : 'Drink logged!')
+    // Haptic feedback on mobile
+    if ('vibrate' in navigator) {
+      navigator.vibrate(50)
+    }
     error.value = ''
   } catch (err) {
     console.error('Error adding drink:', err)
@@ -484,19 +544,18 @@ async function handleAddDrink(context) {
   }
 }
 
-// Handle the Save button click
-async function saveDrink() {
-  if (showContextForm.value) {
-    try {
-      await handleAddDrink({})
-      showContextForm.value = false
-    } catch (err) {
-      console.error('Error saving drink:', err)
-      error.value = 'Failed to save drink.'
-    }
-  } else {
-    showContextForm.value = true
-  }
+// Show success feedback toast
+function showSuccessFeedback(message) {
+  successMessage.value = message
+  showSuccess.value = true
+  setTimeout(() => {
+    showSuccess.value = false
+  }, 2500)
+}
+
+// Wrapper for ContextForm submit (handles quantity parameter)
+function handleAddDrinkWithContext(context, quantity = 1) {
+  handleAddDrink(context, quantity)
 }
 
 // Update progress message based on drink count and historical average
@@ -547,3 +606,116 @@ async function updateProgressMessage() {
   progressMessage.value = `${selectedMessage}${contextMessage} ${randomTip}`
 }
 </script>
+
+<style scoped>
+/* Drink action buttons - clear primary actions */
+.drink-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  margin: 1.5rem 0;
+}
+
+.quick-log-btn,
+.details-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border: none;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 120px;
+}
+
+.quick-log-btn {
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: white;
+  box-shadow: 0 4px 15px rgba(46, 204, 113, 0.3);
+}
+
+.quick-log-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(46, 204, 113, 0.4);
+}
+
+.quick-log-btn:active {
+  transform: translateY(0);
+}
+
+.details-btn {
+  background: var(--bg-secondary, #f8f9fa);
+  color: var(--text-primary, #2c3e50);
+  border: 2px solid var(--border, #dee2e6);
+}
+
+.details-btn:hover {
+  background: var(--bg-primary, #fff);
+  border-color: #3498db;
+}
+
+.btn-icon {
+  font-size: 1.5rem;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.btn-text {
+  font-size: 0.875rem;
+  margin-top: 0.25rem;
+}
+
+/* Success toast notification */
+.success-toast {
+  position: fixed;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 1rem 1.5rem;
+  background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+  color: white;
+  border-radius: 50px;
+  box-shadow: 0 4px 20px rgba(46, 204, 113, 0.4);
+  font-weight: 600;
+  z-index: 1000;
+}
+
+.toast-icon {
+  font-size: 1.25rem;
+}
+
+/* Toast animation */
+.toast-enter-active,
+.toast-leave-active {
+  transition: all 0.3s ease;
+}
+
+.toast-enter-from,
+.toast-leave-to {
+  opacity: 0;
+  transform: translateX(-50%) translateY(20px);
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .drink-actions {
+    flex-direction: row;
+    gap: 0.75rem;
+  }
+
+  .quick-log-btn,
+  .details-btn {
+    flex: 1;
+    min-width: auto;
+    padding: 0.875rem 1rem;
+  }
+
+  .btn-icon {
+    font-size: 1.25rem;
+  }
+}
+</style>

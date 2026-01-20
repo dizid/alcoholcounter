@@ -14,12 +14,17 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, ref, provide } from 'vue'
 import { useUserStore } from './stores/user'
 import { supabase } from './supabase'
+import { addDrinkLog } from './services/db'
 import MainMenu from './components/MainMenu.vue'
 
 const userStore = useUserStore()
+
+// Provide a quick log trigger that MainTracker can listen to
+const quickLogTrigger = ref(0)
+provide('quickLogTrigger', quickLogTrigger)
 
 onMounted(async () => {
   // First check if a session exists in localStorage
@@ -49,9 +54,38 @@ onMounted(async () => {
     userStore.setUser(session?.user || null)
     if (session) setupNotifications()
   })
+
+  // Check for quick-log action from URL (used by notification click)
+  const urlParams = new URLSearchParams(window.location.search)
+  if (urlParams.get('action') === 'quicklog') {
+    await handleQuickLogFromNotification()
+    // Clean up URL
+    window.history.replaceState({}, document.title, window.location.pathname)
+  }
 })
 
+// Handle quick log from notification
+async function handleQuickLogFromNotification() {
+  try {
+    await addDrinkLog({})
+    // Trigger refresh in MainTracker if it's mounted
+    quickLogTrigger.value++
+    // Show a brief confirmation
+    if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification('Drink Logged', {
+        body: 'Your drink has been recorded.',
+        tag: 'quick-log-confirm',
+        requireInteraction: false
+      })
+    }
+  } catch (err) {
+    console.error('Error quick logging from notification:', err)
+  }
+}
+
 async function setupNotifications() {
+  if (!('Notification' in window)) return
+
   if (Notification.permission === 'granted') {
     startNotificationInterval()
   } else if (Notification.permission !== 'denied') {
@@ -64,16 +98,35 @@ async function setupNotifications() {
 
 function startNotificationInterval() {
   const messages = [
-    'Remember your goals – you’re doing great!',
-    'Stay mindful: one step at a time.',
-    'You’re stronger than you think. Keep going!',
-    'Hydrate and reflect – progress is progress.',
-    'Proud of your efforts today!'
+    { text: "Remember your goals - you're doing great!", includeAction: true },
+    { text: 'Stay mindful: one step at a time.', includeAction: false },
+    { text: "You're stronger than you think. Keep going!", includeAction: false },
+    { text: 'How are you doing? Tap to log a drink if needed.', includeAction: true },
+    { text: 'Proud of your efforts today!', includeAction: false }
   ]
 
   setInterval(() => {
-    const randomMsg = messages[Math.floor(Math.random() * messages.length)]
-    new Notification('Alcohol Support Tracker', { body: randomMsg })
+    const msg = messages[Math.floor(Math.random() * messages.length)]
+    showNotificationWithAction(msg.text, msg.includeAction)
   }, 30 * 60 * 1000)
+}
+
+function showNotificationWithAction(body, includeAction) {
+  const notification = new Notification('Alcohol Support Tracker', {
+    body: includeAction ? `${body}\n\nClick to log a drink` : body,
+    icon: '/logo.png',
+    tag: 'reminder',
+    requireInteraction: false
+  })
+
+  if (includeAction) {
+    notification.onclick = async (event) => {
+      event.preventDefault()
+      // Focus or open the app
+      if (window.focus) window.focus()
+      // Navigate to main page with quick-log action
+      window.location.href = '/?action=quicklog'
+    }
+  }
 }
 </script>

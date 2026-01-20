@@ -16,6 +16,11 @@
         <li><router-link to="/about-tracker" class="nav-link" @click="closeMenu"><span class="nav-icon">i</span> About</router-link></li>
         <li><router-link to="/feedback" class="nav-link" @click="closeMenu"><span class="nav-icon">?</span> Feedback</router-link></li>
         <li><button @click="handleLogout" class="nav-button">Logout</button></li>
+        <li>
+          <button @click="toggleTheme" class="theme-toggle" :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'">
+            {{ isDark ? '&#9788;' : '&#9790;' }}
+          </button>
+        </li>
       </template>
       <template v-else>
         <!-- Links shown when logged out -->
@@ -26,7 +31,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { logout } from '../services/auth'
@@ -34,6 +39,31 @@ import { logout } from '../services/auth'
 const router = useRouter()
 const userStore = useUserStore()
 const isMenuOpen = ref(false)
+const isDark = ref(false)
+
+// Initialize theme from localStorage or system preference
+onMounted(() => {
+  const savedTheme = localStorage.getItem('theme')
+  if (savedTheme) {
+    isDark.value = savedTheme === 'dark'
+  } else {
+    // Check system preference
+    isDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
+  }
+  applyTheme()
+})
+
+// Toggle between light and dark theme
+function toggleTheme() {
+  isDark.value = !isDark.value
+  applyTheme()
+  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+}
+
+// Apply theme to document
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light')
+}
 
 async function handleLogout() {
   try {
@@ -45,10 +75,145 @@ async function handleLogout() {
 }
 
 function toggleMenu() {
-  isMenuOpen.value = !isMenuOpen.value // Ensure toggle works
+  isMenuOpen.value = !isMenuOpen.value
 }
 
 function closeMenu() {
   isMenuOpen.value = false
 }
 </script>
+
+<style scoped>
+.main-menu {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+
+.hamburger {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.hamburger-icon {
+  font-size: 1.25rem;
+}
+
+.nav-links {
+  display: none;
+  list-style: none;
+  margin: 0;
+  padding: 0.5rem;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border);
+  box-shadow: 0 4px 12px var(--shadow);
+}
+
+.nav-links-open {
+  display: block;
+}
+
+.nav-links li {
+  margin: 0;
+}
+
+.nav-link {
+  display: block;
+  padding: 0.75rem 1rem;
+  color: var(--text-primary);
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.nav-link:hover {
+  background: var(--bg-tertiary);
+  text-decoration: none;
+}
+
+.nav-icon {
+  display: inline-block;
+  width: 1.5rem;
+  text-align: center;
+  margin-right: 0.5rem;
+  color: var(--text-secondary);
+}
+
+.nav-button {
+  width: 100%;
+  text-align: left;
+  padding: 0.75rem 1rem;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.nav-button:hover {
+  background: var(--bg-tertiary);
+}
+
+.theme-toggle {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.theme-toggle:hover {
+  background: var(--accent-light);
+  border-color: var(--accent);
+}
+
+/* Desktop styles */
+@media (min-width: 768px) {
+  .hamburger {
+    display: none;
+  }
+
+  .nav-links {
+    display: flex;
+    position: static;
+    background: transparent;
+    border: none;
+    box-shadow: none;
+    gap: 0.5rem;
+  }
+
+  .nav-link {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .nav-button {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .theme-toggle {
+    width: auto;
+    padding: 0.5rem 0.75rem;
+  }
+}
+</style>

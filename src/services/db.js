@@ -81,6 +81,69 @@ export async function getAllDrinkLogs() {
   return data
 }
 
+// Function to get recent drink logs with pagination
+export async function getRecentDrinkLogs(limit = 20, offset = 0) {
+  const { data, error } = await supabase
+    .from('drink_logs')
+    .select('id, created_at, location, company, drink_type, mood')
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+  if (error) throw error
+  return data || []
+}
+
+// Function to delete a drink log
+export async function deleteDrinkLog(id) {
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    throw new Error('User not authenticated')
+  }
+  const { error } = await supabase
+    .from('drink_logs')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id) // RLS safety: ensure user owns this record
+  if (error) throw error
+}
+
+// Function to update a drink log
+export async function updateDrinkLog(id, context) {
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
+    throw new Error('User not authenticated')
+  }
+  const { error } = await supabase
+    .from('drink_logs')
+    .update(context)
+    .eq('id', id)
+    .eq('user_id', user.id) // RLS safety: ensure user owns this record
+  if (error) throw error
+}
+
+// Function to get mood correlations for AI insights
+export async function getMoodCorrelations() {
+  const logs = await getAllDrinkLogs()
+  const moodCounts = {}
+  const totalWithMood = logs.filter(log => log.mood).length
+
+  logs.forEach(log => {
+    if (log.mood) {
+      moodCounts[log.mood] = (moodCounts[log.mood] || 0) + 1
+    }
+  })
+
+  // Calculate percentages
+  const moodPercentages = {}
+  Object.entries(moodCounts).forEach(([mood, count]) => {
+    moodPercentages[mood] = {
+      count,
+      percentage: totalWithMood > 0 ? Math.round((count / totalWithMood) * 100) : 0
+    }
+  })
+
+  return moodPercentages
+}
+
 // Function to add a user-entered trigger
 export async function addUserTrigger(triggerText, copingStrategy = null) {
   const { data: { user }, error: authError } = await supabase.auth.getUser()

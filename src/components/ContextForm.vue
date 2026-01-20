@@ -1,8 +1,18 @@
 <template>
   <div class="context-overlay" @click.self="cancel">
     <div class="context-form">
-      <h3>Log a Drink</h3>
+      <h3>Log Drinks</h3>
       <p class="form-subtitle">Add context to help spot patterns (optional)</p>
+
+      <!-- Quantity selector for batch input -->
+      <div class="form-group quantity-group">
+        <label>How many drinks?</label>
+        <div class="quantity-selector">
+          <button type="button" @click="decrementQuantity" :disabled="quantity <= 1" class="qty-btn">-</button>
+          <span class="qty-value">{{ quantity }}</span>
+          <button type="button" @click="incrementQuantity" :disabled="quantity >= 20" class="qty-btn">+</button>
+        </div>
+      </div>
 
       <div class="form-group">
         <label for="location">Location</label>
@@ -66,6 +76,7 @@ import { ref } from 'vue'
 
 const emit = defineEmits(['submit', 'cancel'])
 
+const quantity = ref(1)
 const form = ref({
   location: '',
   company: '',
@@ -73,12 +84,22 @@ const form = ref({
   mood: ''
 })
 
+// Quantity controls
+function incrementQuantity() {
+  if (quantity.value < 20) quantity.value++
+}
+
+function decrementQuantity() {
+  if (quantity.value > 1) quantity.value--
+}
+
 function submit() {
   const context = {}
   Object.keys(form.value).forEach(key => {
     if (form.value[key]) context[key] = form.value[key]
   })
-  emit('submit', context)
+  // Emit both context and quantity
+  emit('submit', context, quantity.value)
 }
 
 function cancel() {
@@ -132,6 +153,53 @@ function cancel() {
   margin: 0 0 1.25rem 0;
   color: #7f8c8d;
   font-size: 0.875rem;
+}
+
+/* Quantity selector for batch input */
+.quantity-group {
+  margin-bottom: 1.25rem;
+}
+
+.quantity-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.qty-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 2px solid #dee2e6;
+  background: white;
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #2c3e50;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qty-btn:hover:not(:disabled) {
+  border-color: #3498db;
+  background: #f8f9fa;
+}
+
+.qty-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.qty-value {
+  font-size: 2rem;
+  font-weight: bold;
+  color: #2c3e50;
+  min-width: 3rem;
+  text-align: center;
 }
 
 .form-group {

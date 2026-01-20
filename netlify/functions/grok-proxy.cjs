@@ -49,20 +49,28 @@ exports.handler = async (event) => {
       return sendResponse(400, { error: 'Missing requestType' })
     }
 
-    // Restored prompt for structured short paragraphs using all user data
+    // Enhanced prompt with mood correlations for better insights
+    const moodData = userData.moodCorrelations || {};
+    const moodInsight = Object.entries(moodData)
+      .sort((a, b) => (b[1]?.count || 0) - (a[1]?.count || 0))
+      .slice(0, 3)
+      .map(([mood, data]) => `${mood}: ${data?.percentage || 0}%`)
+      .join(', ');
+
     const prompt = `Provide personalized ${requestType} based on the user's full data:
 - Triggers: ${JSON.stringify(userData.triggers || [])}
 - Historical Drinking Patterns: ${JSON.stringify(userData.historicalDrinkingPatterns || {})}
 - Context Frequencies: ${JSON.stringify(userData.contextFrequencies || {})}
+- Mood When Drinking: ${moodInsight || 'No mood data yet'}
 - Reflections: ${JSON.stringify(userData.reflections || [])}
 
-Structure the advice in short paragraphs (1-2 sentences each) with sections: 
-1. Triggers Analysis
-2. Drinking Patterns Insights
-3. Reflections Summary
+Structure the advice in short paragraphs (1-2 sentences each) with sections:
+1. Mood & Emotional Patterns (highlight correlations like "You drink X% more when feeling stressed")
+2. Triggers Analysis
+3. Drinking Patterns Insights
 4. Personalized Tips
 
-Keep it encouraging, concise, and supportive, aligned with CBT principles.`;
+Keep it encouraging, concise, and supportive, aligned with CBT principles. Be specific about mood correlations if data is available.`;
 
     console.log('Sending optimized prompt to API:', prompt);
 
