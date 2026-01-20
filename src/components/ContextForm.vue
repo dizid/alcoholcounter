@@ -1,16 +1,35 @@
 <template>
-  <div class="context-overlay" @click.self="cancel">
-    <div class="context-form">
-      <h3>Log Drinks</h3>
+  <div
+    class="context-overlay"
+    @click.self="cancel"
+    @keydown.escape="cancel"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="context-form-title"
+  >
+    <div class="context-form" ref="modalContent">
+      <h3 id="context-form-title">Log Drinks</h3>
       <p class="form-subtitle">Add context to help spot patterns (optional)</p>
 
       <!-- Quantity selector for batch input -->
       <div class="form-group quantity-group">
-        <label>How many drinks?</label>
-        <div class="quantity-selector">
-          <button type="button" @click="decrementQuantity" :disabled="quantity <= 1" class="qty-btn">-</button>
-          <span class="qty-value">{{ quantity }}</span>
-          <button type="button" @click="incrementQuantity" :disabled="quantity >= 20" class="qty-btn">+</button>
+        <label id="quantity-label">How many drinks?</label>
+        <div class="quantity-selector" role="group" aria-labelledby="quantity-label">
+          <button
+            type="button"
+            @click="decrementQuantity"
+            :disabled="quantity <= 1"
+            class="qty-btn"
+            aria-label="Decrease quantity"
+          >-</button>
+          <span class="qty-value" aria-live="polite" aria-atomic="true">{{ quantity }}</span>
+          <button
+            type="button"
+            @click="incrementQuantity"
+            :disabled="quantity >= 20"
+            class="qty-btn"
+            aria-label="Increase quantity"
+          >+</button>
         </div>
       </div>
 
@@ -72,7 +91,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue'
 
 const emit = defineEmits(['submit', 'cancel'])
 
@@ -82,6 +101,25 @@ const form = ref({
   company: '',
   drink_type: '',
   mood: ''
+})
+
+// Modal accessibility - focus management
+const modalContent = ref(null)
+const previouslyFocused = ref(null)
+
+onMounted(async () => {
+  // Store the element that was focused before modal opened
+  previouslyFocused.value = document.activeElement
+
+  // Focus first focusable element in modal after render
+  await nextTick()
+  const firstFocusable = modalContent.value?.querySelector('button, input, select, textarea')
+  firstFocusable?.focus()
+})
+
+onBeforeUnmount(() => {
+  // Restore focus to previously focused element
+  previouslyFocused.value?.focus()
 })
 
 // Quantity controls

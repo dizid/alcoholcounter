@@ -9,6 +9,7 @@ import MainTracker from '../MainTracker.vue'
 vi.mock('../../services/db', () => ({
   getTodayDrinkCount: vi.fn().mockResolvedValue(0),
   addDrinkLog: vi.fn().mockResolvedValue([{ id: 1 }]),
+  getHistoricalCounts: vi.fn().mockResolvedValue({}),
   getUserTriggers: vi.fn().mockResolvedValue([]),
   getUserReflections: vi.fn().mockResolvedValue([]),
   addUserTrigger: vi.fn().mockResolvedValue(),
@@ -27,11 +28,28 @@ vi.mock('../../services/authErrorHandler', () => ({
   handleAuthError: vi.fn(),
 }))
 
+// Mock supabase
+vi.mock('../../supabase', () => ({
+  supabase: {
+    auth: {
+      getUser: vi.fn().mockResolvedValue({ data: { user: { user_metadata: {} } } })
+    }
+  }
+}))
+
 // Mock ContextForm component
 vi.mock('../../components/ContextForm.vue', () => ({
   default: {
-    template: '<div class="context-form-stub"><button @click="$emit(\'submit\', { mood: \'happy\' })">Submit</button><button @click="$emit(\'cancel\')">Cancel</button></div>',
+    template: '<div class="context-form-stub"><button class="stub-submit" @click="$emit(\'submit\', { mood: \'happy\' }, 1)">Submit</button><button class="stub-cancel" @click="$emit(\'cancel\')">Cancel</button></div>',
     emits: ['submit', 'cancel'],
+  },
+}))
+
+// Mock Onboarding component
+vi.mock('../../components/Onboarding.vue', () => ({
+  default: {
+    template: '<div class="onboarding-stub"></div>',
+    emits: ['complete'],
   },
 }))
 
@@ -59,6 +77,7 @@ describe('MainTracker view', () => {
     // Reset mocks to default values
     dbService.getTodayDrinkCount.mockResolvedValue(0)
     dbService.addDrinkLog.mockResolvedValue([{ id: 1 }])
+    dbService.getHistoricalCounts.mockResolvedValue({})
     dbService.getUserTriggers.mockResolvedValue([])
     dbService.getUserReflections.mockResolvedValue([])
     dbService.logMindfulnessSession.mockResolvedValue([])
@@ -75,6 +94,9 @@ describe('MainTracker view', () => {
     return mount(MainTracker, {
       global: {
         plugins: [router],
+        provide: {
+          quickLogTrigger: { value: 0 }
+        }
       },
     })
   }
@@ -95,57 +117,50 @@ describe('MainTracker view', () => {
       expect(wrapper.text()).toContain('Current drinks today: 3')
     })
 
-    it('should render Add Drink button', async () => {
+    it('should render Quick Log button', async () => {
       const wrapper = await mountTracker()
 
-      expect(wrapper.find('.add-drink-button').text()).toBe('+ Add Drink')
+      expect(wrapper.find('.quick-log-btn').exists()).toBe(true)
+      expect(wrapper.find('.quick-log-btn').text()).toContain('Quick Log')
     })
 
-    it('should render Save button', async () => {
+    it('should render With Details button', async () => {
       const wrapper = await mountTracker()
 
-      expect(wrapper.find('.save-button').text()).toBe('Save')
+      expect(wrapper.find('.details-btn').exists()).toBe(true)
+      expect(wrapper.find('.details-btn').text()).toContain('With Details')
     })
 
-    it('should render mindfulness section button', async () => {
+    it('should render support section toggle', async () => {
       const wrapper = await mountTracker()
 
-      expect(wrapper.find('.mindfulness-button').exists()).toBe(true)
-    })
-
-    it('should render CBT section button', async () => {
-      const wrapper = await mountTracker()
-
-      expect(wrapper.find('.cbt-button').exists()).toBe(true)
+      expect(wrapper.find('.support-toggle-btn').exists()).toBe(true)
+      expect(wrapper.find('.support-toggle-btn').text()).toContain('Need Support?')
     })
   })
 
   describe('drink tracking', () => {
-    it('should show context form when Add Drink is clicked', async () => {
+    it('should show context form when With Details is clicked', async () => {
       const wrapper = await mountTracker()
       await flushPromises()
 
-      // Click Add Drink to show context form
-      await wrapper.find('.add-drink-button').trigger('click')
+      // Click With Details to show context form
+      await wrapper.find('.details-btn').trigger('click')
       await flushPromises()
 
       // Context form should be visible (stubbed)
       expect(wrapper.find('.context-form-stub').exists()).toBe(true)
     })
 
-    it('should call addDrinkLog when Save is clicked', async () => {
+    it('should call addDrinkLog when Quick Log is clicked', async () => {
       const wrapper = await mountTracker()
       await flushPromises()
 
-      // Add a drink first
-      await wrapper.find('.add-drink-button').trigger('click')
+      // Click Quick Log
+      await wrapper.find('.quick-log-btn').trigger('click')
       await flushPromises()
 
-      // Save
-      await wrapper.find('.save-button').trigger('click')
-      await flushPromises()
-
-      expect(dbService.addDrinkLog).toHaveBeenCalled()
+      expect(dbService.addDrinkLog).toHaveBeenCalledWith({})
     })
 
     it('should load today drink count on mount', async () => {
@@ -156,68 +171,39 @@ describe('MainTracker view', () => {
     })
   })
 
-  describe('mindfulness section', () => {
-    it('should toggle mindfulness section visibility', async () => {
+  describe('support section', () => {
+    it('should toggle support section visibility', async () => {
       const wrapper = await mountTracker()
       await flushPromises()
 
-      expect(wrapper.find('.mindfulness-content').exists()).toBe(false)
+      expect(wrapper.find('.support-content').exists()).toBe(false)
 
-      await wrapper.find('.mindfulness-button').trigger('click')
+      await wrapper.find('.support-toggle-btn').trigger('click')
       await flushPromises()
 
-      expect(wrapper.find('.mindfulness-content').exists()).toBe(true)
+      expect(wrapper.find('.support-content').exists()).toBe(true)
     })
 
-    it('should display mindfulness tabs when section is open', async () => {
+    it('should display support cards when section is open', async () => {
       const wrapper = await mountTracker()
       await flushPromises()
 
-      await wrapper.find('.mindfulness-button').trigger('click')
+      await wrapper.find('.support-toggle-btn').trigger('click')
       await flushPromises()
 
-      expect(wrapper.find('.mindfulness-tabs').exists()).toBe(true)
+      expect(wrapper.find('.support-cards').exists()).toBe(true)
     })
 
-    it('should show streak counter if streak exists', async () => {
-      // Return sessions that would create a streak
-      const today = new Date().toISOString().split('T')[0]
-      const yesterday = new Date(Date.now() - 86400000).toISOString().split('T')[0]
-      dbService.logMindfulnessSession.mockResolvedValue([
-        { session_date: today },
-        { session_date: yesterday },
-      ])
+    it('should show streak badge if streak exists', async () => {
+      // Set streak in localStorage
+      localStorage.setItem('mindfulnessStreak', '5')
 
       const wrapper = await mountTracker()
       await flushPromises()
 
-      // The streak counter visibility depends on calculated streak value
-      const button = wrapper.find('.mindfulness-button')
+      // The streak badge should be visible in the support toggle button
+      const button = wrapper.find('.support-toggle-btn')
       expect(button.exists()).toBe(true)
-    })
-  })
-
-  describe('CBT section', () => {
-    it('should toggle CBT section visibility', async () => {
-      const wrapper = await mountTracker()
-      await flushPromises()
-
-      expect(wrapper.find('.cbt-content').exists()).toBe(false)
-
-      await wrapper.find('.cbt-button').trigger('click')
-      await flushPromises()
-
-      expect(wrapper.find('.cbt-content').exists()).toBe(true)
-    })
-
-    it('should display CBT tabs when section is open', async () => {
-      const wrapper = await mountTracker()
-      await flushPromises()
-
-      await wrapper.find('.cbt-button').trigger('click')
-      await flushPromises()
-
-      expect(wrapper.find('.cbt-tabs').exists()).toBe(true)
     })
   })
 
@@ -250,12 +236,72 @@ describe('MainTracker view', () => {
       const wrapper = await mountTracker()
       await flushPromises()
 
-      await wrapper.find('.add-drink-button').trigger('click')
-      await wrapper.find('.save-button').trigger('click')
+      await wrapper.find('.quick-log-btn').trigger('click')
       await flushPromises()
 
       // Should show error message
       expect(wrapper.find('.error').exists() || wrapper.text()).toBeTruthy()
+    })
+  })
+
+  describe('accessibility', () => {
+    it('should have proper aria-expanded on support toggle button', async () => {
+      const wrapper = await mountTracker()
+      await flushPromises()
+
+      const toggle = wrapper.find('.support-toggle-btn')
+      // Initially collapsed
+      expect(toggle.attributes('aria-expanded')).toBe('false')
+    })
+
+    it('should update aria-expanded when support tools toggled', async () => {
+      const wrapper = await mountTracker()
+      await flushPromises()
+
+      const toggle = wrapper.find('.support-toggle-btn')
+      await toggle.trigger('click')
+      await flushPromises()
+
+      // Now expanded
+      expect(toggle.attributes('aria-expanded')).toBe('true')
+    })
+
+    it('should have aria-controls on support toggle button', async () => {
+      const wrapper = await mountTracker()
+      await flushPromises()
+
+      const toggle = wrapper.find('.support-toggle-btn')
+      expect(toggle.attributes('aria-controls')).toBe('support-content')
+    })
+
+    it('should have role="region" on support content when visible', async () => {
+      const wrapper = await mountTracker()
+      await flushPromises()
+
+      // Open support tools
+      await wrapper.find('.support-toggle-btn').trigger('click')
+      await flushPromises()
+
+      const supportContent = wrapper.find('#support-content')
+      expect(supportContent.exists()).toBe(true)
+      expect(supportContent.attributes('role')).toBe('region')
+    })
+
+    it('should have aria-pressed on support card buttons', async () => {
+      const wrapper = await mountTracker()
+      await flushPromises()
+
+      // Open support tools
+      await wrapper.find('.support-toggle-btn').trigger('click')
+      await flushPromises()
+
+      const cards = wrapper.findAll('.support-card')
+      expect(cards.length).toBeGreaterThan(0)
+
+      // All cards should have aria-pressed="false" initially
+      cards.forEach(card => {
+        expect(card.attributes('aria-pressed')).toBe('false')
+      })
     })
   })
 })

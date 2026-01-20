@@ -2,29 +2,61 @@
   <!-- Main menu navigation -->
   <nav class="main-menu">
     <!-- Hamburger icon for mobile with Menu text -->
-    <button class="hamburger" @click="toggleMenu" aria-label="Toggle menu">
-      <span class="hamburger-icon">{{ isMenuOpen ? '✖' : '☰' }}</span>
+    <button
+      class="hamburger"
+      @click="toggleMenu"
+      :aria-expanded="isMenuOpen ? 'true' : 'false'"
+      aria-controls="main-nav"
+      aria-label="Toggle navigation menu"
+    >
+      <span class="hamburger-icon" aria-hidden="true">{{ isMenuOpen ? '✖' : '☰' }}</span>
       <span class="hamburger-text"> Menu</span>
     </button>
     
     <!-- Navigation links -->
-    <ul :class="{ 'nav-links': true, 'nav-links-open': isMenuOpen }">
+    <ul id="main-nav" :class="{ 'nav-links': true, 'nav-links-open': isMenuOpen }" role="menubar">
       <template v-if="userStore.user">
         <!-- Links shown when logged in -->
-        <li><router-link to="/" class="nav-link" @click="closeMenu"><span class="nav-icon">+</span> Track</router-link></li>
-        <li><router-link to="/dashboard" class="nav-link" @click="closeMenu"><span class="nav-icon">=</span> Dashboard</router-link></li>
-        <li><router-link to="/about-tracker" class="nav-link" @click="closeMenu"><span class="nav-icon">i</span> About</router-link></li>
-        <li><router-link to="/feedback" class="nav-link" @click="closeMenu"><span class="nav-icon">?</span> Feedback</router-link></li>
-        <li><button @click="handleLogout" class="nav-button">Logout</button></li>
-        <li>
-          <button @click="toggleTheme" class="theme-toggle" :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'">
-            {{ isDark ? '&#9788;' : '&#9790;' }}
+        <li role="none">
+          <router-link to="/" class="nav-link" @click="closeMenu" role="menuitem" :aria-current="route.path === '/' ? 'page' : undefined">
+            <span class="nav-icon" aria-hidden="true">+</span> Track
+          </router-link>
+        </li>
+        <li role="none">
+          <router-link to="/dashboard" class="nav-link" @click="closeMenu" role="menuitem" :aria-current="route.path === '/dashboard' ? 'page' : undefined">
+            <span class="nav-icon" aria-hidden="true">=</span> Dashboard
+          </router-link>
+        </li>
+        <li role="none">
+          <router-link to="/about-tracker" class="nav-link" @click="closeMenu" role="menuitem" :aria-current="route.path === '/about-tracker' ? 'page' : undefined">
+            <span class="nav-icon" aria-hidden="true">i</span> About
+          </router-link>
+        </li>
+        <li role="none">
+          <router-link to="/feedback" class="nav-link" @click="closeMenu" role="menuitem" :aria-current="route.path === '/feedback' ? 'page' : undefined">
+            <span class="nav-icon" aria-hidden="true">?</span> Feedback
+          </router-link>
+        </li>
+        <li role="none"><button @click="handleLogout" class="nav-button" role="menuitem">Logout</button></li>
+        <li role="none">
+          <button
+            @click="toggleTheme"
+            class="theme-toggle"
+            role="menuitem"
+            :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+            :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
+          >
+            <span aria-hidden="true">{{ isDark ? '&#9788;' : '&#9790;' }}</span>
           </button>
         </li>
       </template>
       <template v-else>
         <!-- Links shown when logged out -->
-        <li><router-link to="/login" class="nav-link" @click="closeMenu">Login</router-link></li>
+        <li role="none">
+          <router-link to="/login" class="nav-link" @click="closeMenu" role="menuitem" :aria-current="route.path === '/login' ? 'page' : undefined">
+            Login
+          </router-link>
+        </li>
       </template>
     </ul>
   </nav>
@@ -32,11 +64,12 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { logout } from '../services/auth'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 const isMenuOpen = ref(false)
 const isDark = ref(false)

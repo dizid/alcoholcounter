@@ -179,7 +179,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import Chart from 'chart.js/auto'
 import { marked } from 'marked'
@@ -471,6 +471,14 @@ async function retryAiAdvice() {
 
 onMounted(() => {
   loadData()
+})
+
+// Clean up Chart.js instance when component unmounts to prevent memory leaks
+onBeforeUnmount(() => {
+  if (chartInstance.value) {
+    chartInstance.value.destroy()
+    chartInstance.value = null
+  }
 })
 
 function goToMain() {

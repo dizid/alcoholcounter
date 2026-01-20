@@ -12,7 +12,7 @@ describe('ContextForm', () => {
     it('should render form with title', () => {
       const wrapper = mountForm()
 
-      expect(wrapper.find('h3').text()).toBe('Add Context (Optional)')
+      expect(wrapper.find('h3').text()).toBe('Log Drinks')
     })
 
     it('should render all select fields', () => {
@@ -28,7 +28,7 @@ describe('ContextForm', () => {
       const options = locationSelect.findAll('option')
 
       expect(options.map(o => o.text())).toContain('Home')
-      expect(options.map(o => o.text())).toContain('Bar')
+      expect(options.map(o => o.text())).toContain('Bar / Restaurant')
       expect(options.map(o => o.text())).toContain('Other')
     })
 
@@ -47,9 +47,9 @@ describe('ContextForm', () => {
       const drinkSelect = wrapper.findAll('select')[2]
       const options = drinkSelect.findAll('option')
 
-      expect(options.map(o => o.text())).toContain('beer')
-      expect(options.map(o => o.text())).toContain('wine')
-      expect(options.map(o => o.text())).toContain('stronger')
+      expect(options.map(o => o.text())).toContain('Beer')
+      expect(options.map(o => o.text())).toContain('Wine')
+      expect(options.map(o => o.text())).toContain('Cocktail')
     })
 
     it('should render mood options', () => {
@@ -57,15 +57,16 @@ describe('ContextForm', () => {
       const moodSelect = wrapper.findAll('select')[3]
       const options = moodSelect.findAll('option')
 
-      expect(options.map(o => o.text())).toContain('positive')
-      expect(options.map(o => o.text())).toContain('negative')
-      expect(options.map(o => o.text())).toContain('neutral')
+      expect(options.map(o => o.text())).toContain('Happy / Celebrating')
+      expect(options.map(o => o.text())).toContain('Stressed / Anxious')
+      expect(options.map(o => o.text())).toContain('Neutral')
     })
 
     it('should render save button', () => {
       const wrapper = mountForm()
+      const saveButton = wrapper.find('.save-btn')
 
-      expect(wrapper.find('button').text()).toBe('Save')
+      expect(saveButton.text()).toBe('Log Drink')
     })
   })
 
@@ -73,10 +74,11 @@ describe('ContextForm', () => {
     it('should emit submit with empty context when no selections', async () => {
       const wrapper = mountForm()
 
-      await wrapper.find('button').trigger('click')
+      await wrapper.find('.save-btn').trigger('click')
 
       expect(wrapper.emitted('submit')).toBeTruthy()
       expect(wrapper.emitted('submit')[0][0]).toEqual({})
+      expect(wrapper.emitted('submit')[0][1]).toBe(1) // default quantity
     })
 
     it('should emit submit with selected values', async () => {
@@ -85,16 +87,17 @@ describe('ContextForm', () => {
       await wrapper.findAll('select')[0].setValue('Home')
       await wrapper.findAll('select')[1].setValue('Alone')
       await wrapper.findAll('select')[2].setValue('beer')
-      await wrapper.findAll('select')[3].setValue('positive')
+      await wrapper.findAll('select')[3].setValue('happy')
 
-      await wrapper.find('button').trigger('click')
+      await wrapper.find('.save-btn').trigger('click')
 
       expect(wrapper.emitted('submit')[0][0]).toEqual({
         location: 'Home',
         company: 'Alone',
         drink_type: 'beer',
-        mood: 'positive',
+        mood: 'happy',
       })
+      expect(wrapper.emitted('submit')[0][1]).toBe(1) // default quantity
     })
 
     it('should only include non-empty values in context', async () => {
@@ -104,7 +107,7 @@ describe('ContextForm', () => {
       await wrapper.findAll('select')[2].setValue('wine')
       // Leave company and mood empty
 
-      await wrapper.find('button').trigger('click')
+      await wrapper.find('.save-btn').trigger('click')
 
       const emittedContext = wrapper.emitted('submit')[0][0]
       expect(emittedContext).toEqual({
@@ -133,6 +136,58 @@ describe('ContextForm', () => {
       await select.setValue('With friends')
 
       expect(select.element.value).toBe('With friends')
+    })
+  })
+
+  describe('accessibility', () => {
+    it('should have role="dialog" on overlay', () => {
+      const wrapper = mountForm()
+      const overlay = wrapper.find('.context-overlay')
+
+      expect(overlay.attributes('role')).toBe('dialog')
+    })
+
+    it('should have aria-modal="true" on overlay', () => {
+      const wrapper = mountForm()
+      const overlay = wrapper.find('.context-overlay')
+
+      expect(overlay.attributes('aria-modal')).toBe('true')
+    })
+
+    it('should have aria-labelledby pointing to title', () => {
+      const wrapper = mountForm()
+      const overlay = wrapper.find('.context-overlay')
+      const title = wrapper.find('#context-form-title')
+
+      expect(overlay.attributes('aria-labelledby')).toBe('context-form-title')
+      expect(title.exists()).toBe(true)
+    })
+
+    it('should emit cancel on Escape key', async () => {
+      const wrapper = mountForm()
+      const overlay = wrapper.find('.context-overlay')
+
+      await overlay.trigger('keydown.escape')
+
+      expect(wrapper.emitted('cancel')).toBeTruthy()
+    })
+
+    it('should have aria-label on quantity buttons', () => {
+      const wrapper = mountForm()
+      const decreaseBtn = wrapper.find('button[aria-label="Decrease quantity"]')
+      const increaseBtn = wrapper.find('button[aria-label="Increase quantity"]')
+
+      expect(decreaseBtn.exists()).toBe(true)
+      expect(increaseBtn.exists()).toBe(true)
+    })
+
+    it('should have labels for all form fields', () => {
+      const wrapper = mountForm()
+
+      expect(wrapper.find('label[for="location"]').exists()).toBe(true)
+      expect(wrapper.find('label[for="company"]').exists()).toBe(true)
+      expect(wrapper.find('label[for="drink_type"]').exists()).toBe(true)
+      expect(wrapper.find('label[for="mood"]').exists()).toBe(true)
     })
   })
 })

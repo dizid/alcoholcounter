@@ -14,7 +14,7 @@
 </template>
 
 <script setup>
-import { onMounted, ref, provide } from 'vue'
+import { onMounted, onBeforeUnmount, ref, provide } from 'vue'
 import { useUserStore } from './stores/user'
 import { supabase } from './supabase'
 import { addDrinkLog } from './services/db'
@@ -25,6 +25,9 @@ const userStore = useUserStore()
 // Provide a quick log trigger that MainTracker can listen to
 const quickLogTrigger = ref(0)
 provide('quickLogTrigger', quickLogTrigger)
+
+// Store notification interval ID for cleanup
+const notificationIntervalId = ref(null)
 
 onMounted(async () => {
   // First check if a session exists in localStorage
@@ -97,6 +100,11 @@ async function setupNotifications() {
 }
 
 function startNotificationInterval() {
+  // Clear any existing interval first
+  if (notificationIntervalId.value) {
+    clearInterval(notificationIntervalId.value)
+  }
+
   const messages = [
     { text: "Remember your goals - you're doing great!", includeAction: true },
     { text: 'Stay mindful: one step at a time.', includeAction: false },
@@ -105,11 +113,19 @@ function startNotificationInterval() {
     { text: 'Proud of your efforts today!', includeAction: false }
   ]
 
-  setInterval(() => {
+  notificationIntervalId.value = setInterval(() => {
     const msg = messages[Math.floor(Math.random() * messages.length)]
     showNotificationWithAction(msg.text, msg.includeAction)
   }, 30 * 60 * 1000)
 }
+
+// Clean up interval when component unmounts
+onBeforeUnmount(() => {
+  if (notificationIntervalId.value) {
+    clearInterval(notificationIntervalId.value)
+    notificationIntervalId.value = null
+  }
+})
 
 function showNotificationWithAction(body, includeAction) {
   const notification = new Notification('Alcohol Support Tracker', {

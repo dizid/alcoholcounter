@@ -1,11 +1,13 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import MainTracker from './views/MainTracker.vue'
-import Dashboard from './views/Dashboard.vue'
-import Feedback from './views/Feedback.vue'
-import Login from './views/Login.vue'
-import AboutTracker from './views/AboutTracker.vue' // New import for AboutTracker page
 import { useUserStore } from './stores/user'
 import { supabase } from './supabase'
+
+// Lazy load views for code splitting - each view becomes a separate chunk
+const MainTracker = () => import('./views/MainTracker.vue')
+const Dashboard = () => import('./views/Dashboard.vue')
+const Feedback = () => import('./views/Feedback.vue')
+const Login = () => import('./views/Login.vue')
+const AboutTracker = () => import('./views/AboutTracker.vue')
 
 const routes = [
   { path: '/', component: MainTracker, meta: { requiresAuth: true } },

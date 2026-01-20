@@ -43,37 +43,62 @@
 
     <!-- Support tools section - collapsed by default for simpler UI -->
     <div class="support-section">
-      <button @click="toggleSupportTools" class="support-toggle-btn" aria-expanded="showSupportTools">
-        <span class="support-icon">{{ showSupportTools ? '-' : '+' }}</span>
+      <button
+        @click="toggleSupportTools"
+        class="support-toggle-btn"
+        :aria-expanded="showSupportTools ? 'true' : 'false'"
+        aria-controls="support-content"
+      >
+        <span class="support-icon" aria-hidden="true">{{ showSupportTools ? '-' : '+' }}</span>
         {{ showSupportTools ? 'Hide Support Tools' : 'Need Support?' }}
         <span v-if="streak > 0" class="streak-badge">{{ streak }} day streak</span>
       </button>
 
-      <div v-if="showSupportTools" class="support-content">
+      <div v-if="showSupportTools" id="support-content" class="support-content" role="region" aria-label="Support tools">
         <p class="support-intro">Choose a tool to help manage cravings:</p>
 
         <!-- Quick action cards -->
-        <div class="support-cards">
-          <button @click="activeSupportTool = 'breathing'" :class="['support-card', { active: activeSupportTool === 'breathing' }]">
-            <span class="card-icon breathing-icon">~</span>
+        <div class="support-cards" role="group" aria-label="Support tool options">
+          <button
+            @click="activeSupportTool = 'breathing'"
+            :class="['support-card', { active: activeSupportTool === 'breathing' }]"
+            :aria-pressed="activeSupportTool === 'breathing' ? 'true' : 'false'"
+            aria-label="Breathing exercise - Calm your mind"
+          >
+            <span class="card-icon breathing-icon" aria-hidden="true">~</span>
             <span class="card-title">Breathing</span>
             <span class="card-desc">Calm your mind</span>
           </button>
 
-          <button @click="activeSupportTool = 'urge'" :class="['support-card', { active: activeSupportTool === 'urge' }]">
-            <span class="card-icon urge-icon">^</span>
+          <button
+            @click="activeSupportTool = 'urge'"
+            :class="['support-card', { active: activeSupportTool === 'urge' }]"
+            :aria-pressed="activeSupportTool === 'urge' ? 'true' : 'false'"
+            aria-label="Urge surfing - Ride the wave"
+          >
+            <span class="card-icon urge-icon" aria-hidden="true">^</span>
             <span class="card-title">Urge Surfing</span>
             <span class="card-desc">Ride the wave</span>
           </button>
 
-          <button @click="activeSupportTool = 'triggers'" :class="['support-card', { active: activeSupportTool === 'triggers' }]">
-            <span class="card-icon trigger-icon">!</span>
+          <button
+            @click="activeSupportTool = 'triggers'"
+            :class="['support-card', { active: activeSupportTool === 'triggers' }]"
+            :aria-pressed="activeSupportTool === 'triggers' ? 'true' : 'false'"
+            aria-label="Triggers - Know your patterns"
+          >
+            <span class="card-icon trigger-icon" aria-hidden="true">!</span>
             <span class="card-title">Triggers</span>
             <span class="card-desc">Know your patterns</span>
           </button>
 
-          <button @click="activeSupportTool = 'reframe'" :class="['support-card', { active: activeSupportTool === 'reframe' }]">
-            <span class="card-icon reframe-icon">?</span>
+          <button
+            @click="activeSupportTool = 'reframe'"
+            :class="['support-card', { active: activeSupportTool === 'reframe' }]"
+            :aria-pressed="activeSupportTool === 'reframe' ? 'true' : 'false'"
+            aria-label="Reframe - Change thoughts"
+          >
+            <span class="card-icon reframe-icon" aria-hidden="true">?</span>
             <span class="card-title">Reframe</span>
             <span class="card-desc">Change thoughts</span>
           </button>

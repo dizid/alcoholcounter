@@ -178,4 +178,79 @@ describe('Login view', () => {
       expect(wrapper.find('input[type="password"]').attributes('required')).toBeDefined()
     })
   })
+
+  describe('accessibility', () => {
+    it('should have labels associated with form inputs', async () => {
+      const wrapper = await mountLogin()
+
+      // Check that labels exist and point to inputs
+      const emailLabel = wrapper.find('label[for="login-email"]')
+      const passwordLabel = wrapper.find('label[for="login-password"]')
+      const emailInput = wrapper.find('#login-email')
+      const passwordInput = wrapper.find('#login-password')
+
+      expect(emailLabel.exists()).toBe(true)
+      expect(passwordLabel.exists()).toBe(true)
+      expect(emailInput.exists()).toBe(true)
+      expect(passwordInput.exists()).toBe(true)
+    })
+
+    it('should have autocomplete attributes on inputs', async () => {
+      const wrapper = await mountLogin()
+
+      const emailInput = wrapper.find('input[type="email"]')
+      const passwordInput = wrapper.find('input[type="password"]')
+
+      expect(emailInput.attributes('autocomplete')).toBe('email')
+      expect(passwordInput.attributes('autocomplete')).toBe('current-password')
+    })
+
+    it('should have aria-required on required inputs', async () => {
+      const wrapper = await mountLogin()
+
+      const emailInput = wrapper.find('input[type="email"]')
+      const passwordInput = wrapper.find('input[type="password"]')
+
+      expect(emailInput.attributes('aria-required')).toBe('true')
+      expect(passwordInput.attributes('aria-required')).toBe('true')
+    })
+
+    it('should have role="alert" on warning message', async () => {
+      const wrapper = await mountLogin({
+        error: 'session_expired',
+        message: 'Your session expired'
+      })
+      await flushPromises()
+
+      const warning = wrapper.find('.warning-message')
+      expect(warning.attributes('role')).toBe('alert')
+    })
+
+    it('should have role="alert" on error message', async () => {
+      const { login } = await import('../../services/auth')
+      login.mockRejectedValue(new Error('Invalid credentials'))
+
+      const wrapper = await mountLogin()
+      await wrapper.find('input[type="email"]').setValue('test@example.com')
+      await wrapper.find('input[type="password"]').setValue('wrong')
+      await wrapper.find('form').trigger('submit')
+      await flushPromises()
+
+      const error = wrapper.find('.error')
+      expect(error.attributes('role')).toBe('alert')
+    })
+
+    it('should have aria-busy on submit button when loading', async () => {
+      const { login } = await import('../../services/auth')
+      login.mockImplementation(() => new Promise(() => {})) // Never resolves
+
+      const wrapper = await mountLogin()
+      await wrapper.find('input[type="email"]').setValue('test@example.com')
+      await wrapper.find('input[type="password"]').setValue('password')
+      await wrapper.find('form').trigger('submit')
+
+      const submitButton = wrapper.find('button[type="submit"]')
+      expect(submitButton.attributes('aria-busy')).toBe('true')
+    })
+  })
 })

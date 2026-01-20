@@ -6,15 +6,39 @@
     <p>Login or create an account to start tracking.</p>
 
     <!-- Warning message for session expiry -->
-    <div v-if="redirectMessage" class="warning-message">
+    <div v-if="redirectMessage" class="warning-message" role="alert">
       {{ redirectMessage }}
     </div>
 
     <!-- Form for email/password login -->
     <form @submit.prevent="handleLogin">
-      <input v-model="email" type="email" placeholder="Email" required />
-      <input v-model="password" type="password" placeholder="Password" required />
-      <button type="submit" :disabled="isLoading">Login</button>
+      <div class="form-group">
+        <label for="login-email" class="visually-hidden">Email address</label>
+        <input
+          id="login-email"
+          v-model="email"
+          type="email"
+          placeholder="Email"
+          required
+          autocomplete="email"
+          aria-required="true"
+        />
+      </div>
+      <div class="form-group">
+        <label for="login-password" class="visually-hidden">Password</label>
+        <input
+          id="login-password"
+          v-model="password"
+          type="password"
+          placeholder="Password"
+          required
+          autocomplete="current-password"
+          aria-required="true"
+        />
+      </div>
+      <button type="submit" :disabled="isLoading" :aria-busy="isLoading">
+        {{ isLoading ? 'Logging in...' : 'Login' }}
+      </button>
     </form>
     
   <!-- Buttons for signup and Google login -->
@@ -37,8 +61,8 @@
     </button>
     
     <!-- Display error or success messages -->
-    <p v-if="error" class="error">{{ error }}</p>
-    <p v-if="message" class="success">{{ message }}</p>
+    <p v-if="error" class="error" role="alert" aria-live="assertive">{{ error }}</p>
+    <p v-if="message" class="success" role="status" aria-live="polite">{{ message }}</p>
   </div>
 </template>
 

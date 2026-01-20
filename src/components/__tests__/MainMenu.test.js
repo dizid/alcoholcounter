@@ -6,6 +6,21 @@ import { createRouter, createMemoryHistory } from 'vue-router'
 import MainMenu from '../MainMenu.vue'
 import { useUserStore } from '../../stores/user'
 
+// Mock window.matchMedia for theme detection
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: vi.fn().mockImplementation(query => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    dispatchEvent: vi.fn(),
+  })),
+})
+
 // Mock the auth service
 vi.mock('../../services/auth', () => ({
   logout: vi.fn().mockResolvedValue(),
@@ -53,14 +68,14 @@ describe('MainMenu', () => {
       const wrapper = mountMenu()
 
       expect(wrapper.find('.hamburger').exists()).toBe(true)
-      expect(wrapper.find('.hamburger-text').text()).toBe('Menu')
+      expect(wrapper.find('.hamburger-text').text()).toContain('Menu')
     })
 
     it('should show login link when logged out', () => {
       const wrapper = mountMenu(false)
 
       expect(wrapper.text()).toContain('Login')
-      expect(wrapper.text()).not.toContain('Tracker')
+      expect(wrapper.text()).not.toContain('Track')
       expect(wrapper.text()).not.toContain('Dashboard')
     })
 
@@ -68,10 +83,10 @@ describe('MainMenu', () => {
       const wrapper = mountMenu(true)
       await wrapper.vm.$nextTick()
 
-      expect(wrapper.text()).toContain('Tracker')
+      expect(wrapper.text()).toContain('Track')
       expect(wrapper.text()).toContain('Dashboard')
       expect(wrapper.text()).toContain('Feedback')
-      expect(wrapper.text()).toContain('Background')
+      expect(wrapper.text()).toContain('About')
       expect(wrapper.text()).toContain('Logout')
     })
   })
