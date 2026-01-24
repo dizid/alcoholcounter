@@ -209,6 +209,23 @@ import Onboarding from '../components/Onboarding.vue'
 // Inject quick log trigger from App.vue (for notification-based logging)
 const quickLogTrigger = inject('quickLogTrigger', ref(0))
 
+// Inject safe localStorage helpers from App.vue
+const safeLocalStorageGet = inject('safeLocalStorageGet', (key, defaultValue) => {
+  try {
+    return localStorage.getItem(key) ?? defaultValue
+  } catch (e) {
+    return defaultValue
+  }
+})
+const safeLocalStorageSet = inject('safeLocalStorageSet', (key, value) => {
+  try {
+    localStorage.setItem(key, value)
+    return true
+  } catch (e) {
+    return false
+  }
+})
+
 // Watch for quick log triggers from notifications
 watch(quickLogTrigger, async () => {
   // Refresh data when a drink was logged via notification
@@ -370,7 +387,7 @@ async function updateStreak() {
       }
     }
     streak.value = currentStreak
-    localStorage.setItem('mindfulnessStreak', currentStreak)
+    safeLocalStorageSet('mindfulnessStreak', currentStreak)
   } catch (err) {
     console.error('Error updating streak:', err)
     streak.value = 0
@@ -500,8 +517,8 @@ onMounted(async () => {
     // Fetch weekly count for goal progress
     await fetchWeeklyDrinkCount()
 
-    // Initialize streak from localStorage
-    streak.value = parseInt(localStorage.getItem('mindfulnessStreak') || '0')
+    // Initialize streak from localStorage (safely handles private browsing)
+    streak.value = parseInt(safeLocalStorageGet('mindfulnessStreak', '0'))
   } catch (err) {
     console.error('Error fetching today\'s count:', err)
 

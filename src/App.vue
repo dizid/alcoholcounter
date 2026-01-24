@@ -1,15 +1,30 @@
 <template>
   <!-- Root app container -->
   <div id="app">
-    <header>
-      <MainMenu />
-    </header>
-    <main>
-      <router-view></router-view>
-    </main>
-    <footer>
-      <!-- Optional footer content can be added here -->
-    </footer>
+    <!-- Loading state during auth initialization -->
+    <div v-if="isInitializing" class="app-loading">
+      <div class="loading-spinner"></div>
+      <p>Loading...</p>
+    </div>
+
+    <!-- Error state if initialization fails -->
+    <div v-else-if="initError" class="app-error">
+      <p>{{ initError }}</p>
+      <button @click="retryInit">Retry</button>
+    </div>
+
+    <!-- Main app content -->
+    <template v-else>
+      <header>
+        <MainMenu />
+      </header>
+      <main>
+        <router-view></router-view>
+      </main>
+      <footer>
+        <!-- Optional footer content can be added here -->
+      </footer>
+    </template>
   </div>
 </template>
 
@@ -22,6 +37,10 @@ import MainMenu from './components/MainMenu.vue'
 
 const userStore = useUserStore()
 
+// App initialization state
+const isInitializing = ref(true)
+const initError = ref('')
+
 // Provide a quick log trigger that MainTracker can listen to
 const quickLogTrigger = ref(0)
 provide('quickLogTrigger', quickLogTrigger)
@@ -29,42 +48,114 @@ provide('quickLogTrigger', quickLogTrigger)
 // Store notification interval ID for cleanup
 const notificationIntervalId = ref(null)
 
-onMounted(async () => {
-  // First check if a session exists in localStorage
-  const { data: { session } } = await supabase.auth.getSession()
+// Helper to wrap async operations with timeout
+function withTimeout(promise, ms, errorMsg = 'Operation timed out') {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(new Error(errorMsg)), ms))
+  ])
+}
 
-  if (session) {
-    // Session exists - validate it against server
-    const { data: { user }, error } = await supabase.auth.getUser()
+// Safe localStorage access (fails silently in private browsing mode)
+function safeLocalStorageGet(key, defaultValue = null) {
+  try {
+    return localStorage.getItem(key) ?? defaultValue
+  } catch (e) {
+    console.warn('localStorage not available:', e)
+    return defaultValue
+  }
+}
 
-    if (!error && user) {
-      // Valid session
-      userStore.setUser(user)
-      setupNotifications()
+function safeLocalStorageSet(key, value) {
+  try {
+    localStorage.setItem(key, value)
+    return true
+  } catch (e) {
+    console.warn('localStorage not available:', e)
+    return false
+  }
+}
+
+// Provide safe localStorage helpers to other components
+provide('safeLocalStorageGet', safeLocalStorageGet)
+provide('safeLocalStorageSet', safeLocalStorageSet)
+
+// Initialize auth state
+async function initializeAuth() {
+  isInitializing.value = true
+  initError.value = ''
+
+  try {
+    // First check if a session exists in localStorage (with timeout)
+    const { data: { session } } = await withTimeout(
+      supabase.auth.getSession(),
+      5000,
+      'Session check timed out'
+    )
+
+    if (session) {
+      // Session exists - validate it against server (with timeout)
+      try {
+        const { data: { user }, error } = await withTimeout(
+          supabase.auth.getUser(),
+          8000,
+          'User validation timed out'
+        )
+
+        if (!error && user) {
+          // Valid session
+          userStore.setUser(user)
+          setupNotifications()
+        } else {
+          // Session exists but is invalid/expired
+          console.warn('Session expired, clearing user state')
+          userStore.setUser(null)
+          await supabase.auth.signOut({ scope: 'local' }).catch(() => {})
+        }
+      } catch (validationError) {
+        // If validation fails but we have a session, still allow the user through
+        // The router guard will handle further validation
+        console.warn('User validation failed, using cached session:', validationError)
+        userStore.setUser(session.user)
+      }
     } else {
-      // Session exists but is invalid/expired
-      console.warn('Session expired, clearing user state')
+      // No session exists - user is logged out
       userStore.setUser(null)
-      await supabase.auth.signOut({ scope: 'local' })
     }
-  } else {
-    // No session exists - user is logged out
+
+    // Listen for auth state changes (login, logout, token refresh)
+    supabase.auth.onAuthStateChange((event, session) => {
+      userStore.setUser(session?.user || null)
+      if (session) setupNotifications()
+    })
+
+    // Check for quick-log action from URL (used by notification click)
+    const urlParams = new URLSearchParams(window.location.search)
+    if (urlParams.get('action') === 'quicklog') {
+      await handleQuickLogFromNotification()
+      // Clean up URL
+      window.history.replaceState({}, document.title, window.location.pathname)
+    }
+  } catch (err) {
+    console.error('Auth initialization error:', err)
+    // On timeout or network error, clear user state and let router redirect to login
     userStore.setUser(null)
+    // Only show error if it's not a timeout (timeouts just mean slow network, not broken app)
+    if (!err.message?.includes('timed out')) {
+      initError.value = 'Failed to connect. Please check your internet connection.'
+    }
+  } finally {
+    isInitializing.value = false
   }
+}
 
-  // Listen for auth state changes (login, logout, token refresh)
-  supabase.auth.onAuthStateChange((event, session) => {
-    userStore.setUser(session?.user || null)
-    if (session) setupNotifications()
-  })
+// Retry initialization
+function retryInit() {
+  initializeAuth()
+}
 
-  // Check for quick-log action from URL (used by notification click)
-  const urlParams = new URLSearchParams(window.location.search)
-  if (urlParams.get('action') === 'quicklog') {
-    await handleQuickLogFromNotification()
-    // Clean up URL
-    window.history.replaceState({}, document.title, window.location.pathname)
-  }
+onMounted(() => {
+  initializeAuth()
 })
 
 // Handle quick log from notification
@@ -146,3 +237,63 @@ function showNotificationWithAction(body, includeAction) {
   }
 }
 </script>
+
+<style scoped>
+/* Loading state styles */
+.app-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 1rem;
+  color: var(--text-secondary, #666);
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border, #e0e0e0);
+  border-top-color: var(--primary, #3498db);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error state styles */
+.app-error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  color: var(--text-primary, #333);
+}
+
+.app-error p {
+  color: var(--error, #e74c3c);
+  margin: 0;
+}
+
+.app-error button {
+  padding: 0.75rem 1.5rem;
+  background: var(--primary, #3498db);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.app-error button:hover {
+  opacity: 0.9;
+}
+</style>
