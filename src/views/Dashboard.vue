@@ -191,6 +191,16 @@ import { isAuthError, handleAuthError } from '../services/authErrorHandler'
 import { supabase } from '../supabase'
 import Achievements from '../components/Achievements.vue'
 
+// Safe localStorage helper (handles private browsing mode)
+function safeLocalStorageGet(key, defaultValue = null) {
+  try {
+    return localStorage.getItem(key) ?? defaultValue
+  } catch (e) {
+    console.warn('localStorage not available:', e)
+    return defaultValue
+  }
+}
+
 const router = useRouter()
 const aiAdvice = ref('No AI advice')
 const aiLoading = ref(false)
@@ -280,8 +290,8 @@ async function loadData() {
     // Calculate tracking streak
     trackingStreak.value = calculateTrackingStreak(historicalCounts)
 
-    // Get mindfulness streak from localStorage
-    mindfulnessStreak.value = parseInt(localStorage.getItem('mindfulnessStreak') || '0')
+    // Get mindfulness streak from localStorage (safely handles private browsing)
+    mindfulnessStreak.value = parseInt(safeLocalStorageGet('mindfulnessStreak', '0'))
 
     // Get mood correlations for AI insights
     const moodCorrelations = await getMoodCorrelations()

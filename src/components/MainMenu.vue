@@ -74,9 +74,29 @@ const userStore = useUserStore()
 const isMenuOpen = ref(false)
 const isDark = ref(false)
 
+// Safe localStorage helpers (handles private browsing mode)
+function safeLocalStorageGet(key, defaultValue = null) {
+  try {
+    return localStorage.getItem(key) ?? defaultValue
+  } catch (e) {
+    console.warn('localStorage not available:', e)
+    return defaultValue
+  }
+}
+
+function safeLocalStorageSet(key, value) {
+  try {
+    localStorage.setItem(key, value)
+    return true
+  } catch (e) {
+    console.warn('localStorage not available:', e)
+    return false
+  }
+}
+
 // Initialize theme from localStorage or system preference
 onMounted(() => {
-  const savedTheme = localStorage.getItem('theme')
+  const savedTheme = safeLocalStorageGet('theme')
   if (savedTheme) {
     isDark.value = savedTheme === 'dark'
   } else {
@@ -90,7 +110,7 @@ onMounted(() => {
 function toggleTheme() {
   isDark.value = !isDark.value
   applyTheme()
-  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
+  safeLocalStorageSet('theme', isDark.value ? 'dark' : 'light')
 }
 
 // Apply theme to document
