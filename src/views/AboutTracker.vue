@@ -1,7 +1,7 @@
 <template>
   <!-- Main container for the About Tracker page -->
-  <div class="container">
-    <h1>About DrinkTracker</h1>
+  <div class="main-container">
+    <h1>About Your Alcohol Support Tracker</h1>
     <p>Learn how our app empowers you to moderate alcohol use with science-backed tools and AI advice.</p>
     
     <!-- Collapsible submenu for navigation -->
@@ -39,7 +39,9 @@
         <p>Because I drink too much I made this app. I hope it will benefit you too 🙏</p>
         <p>Good luck, have fun.</p>
         <div class="logo-container">
-          <img src="@/assets/logo.png" alt="DrinkTracker Logo" class="logo-image" />
+          <router-link to="/" class="logo-link">
+            <img src="@/assets/logo.png" alt="DrinkTracker Logo" class="logo-image" />
+          </router-link>
         </div>
         <h3>Privacy Policy</h3>
         <p>Your privacy is important to us. We will never share your information with anyone. We only use your data to improve your experience. By using our service, you agree to this simple policy. If you have any questions, feel free to contact us.</p>
@@ -156,26 +158,30 @@ function scrollToSection(id) {
 </script>
 
 <style scoped>
-/* Scoped styles for submenu to avoid global conflicts */
+/* Scoped styles for submenu - Ocean Calm theme */
 .submenu {
-  background-color: #ffffff; /* Clean white background */
-  padding: 0.5rem 1rem;
-  border-bottom: 1px solid #ddd;
+  background-color: var(--bg-primary);
+  padding: 1rem;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
 }
 
 /* Submenu toggle button for mobile */
 .submenu-toggle {
   display: flex;
   align-items: center;
-  background-color: #3498db; /* Match app’s blue theme */
+  background: linear-gradient(135deg, var(--accent) 0%, var(--accent-hover) 100%);
   color: white;
   border: none;
-  padding: 0.75rem 1rem;
-  border-radius: 4px;
+  padding: 0.875rem 1.25rem;
+  border-radius: 12px;
   cursor: pointer;
-  font-size: 1.2rem;
+  font-size: 1rem;
+  font-weight: 600;
   width: 100%;
   justify-content: center;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.25);
+  transition: all 0.2s ease;
 }
 
 .submenu-toggle-icon {
@@ -183,57 +189,77 @@ function scrollToSection(id) {
 }
 
 .submenu-toggle-text {
-  font-weight: bold;
+  font-weight: 600;
 }
 
 .submenu-toggle:hover {
-  background-color: #2980b9; /* Darker blue on hover */
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.35);
 }
 
 /* Submenu links */
 .submenu-links {
-  display: none; /* Hidden by default on mobile */
+  display: none;
   flex-direction: column;
   list-style: none;
-  margin: 0.5rem 0 0;
+  margin: 0.75rem 0 0;
   padding: 0;
+  gap: 0.5rem;
 }
 
 .submenu-links-open {
-  display: flex; /* Show when toggled */
+  display: flex;
 }
 
 .submenu-link {
-  display: block;
-  padding: 0.75rem 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.875rem 1.25rem;
   text-decoration: none;
-  color: #ffffff;
-  background-color: #3498db; /* Blue buttons for consistency */
-  border-radius: 4px;
-  margin-bottom: 0.5rem;
-  font-size: 1.2rem; /* Larger for touch */
+  color: var(--text-primary);
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 500;
   text-align: center;
-  min-height: 48px; /* Touch-friendly size */
+  min-height: 48px;
+  transition: all 0.2s ease;
 }
 
 .submenu-link:hover {
-  background-color: #2980b9; /* Darker blue on hover */
+  background-color: var(--accent-light);
+  border-color: var(--accent);
+  color: var(--accent);
+  transform: translateY(-1px);
+}
+
+/* Logo link styling */
+.logo-link {
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+.logo-link:hover {
+  transform: scale(1.02);
 }
 
 /* Desktop: Show submenu inline, hide toggle */
 @media (min-width: 769px) {
   .submenu-toggle {
-    display: none; /* Hide toggle on desktop */
+    display: none;
   }
   .submenu-links {
-    display: flex !important; /* Always visible */
+    display: flex !important;
     flex-direction: row;
     justify-content: center;
-    gap: 1rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
   }
   .submenu-link {
     width: auto;
-    margin-bottom: 0;
+    padding: 0.75rem 1.25rem;
   }
 }
 </style>
