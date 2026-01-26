@@ -1,7 +1,7 @@
 <template>
   <!-- Main menu navigation -->
   <nav class="main-menu">
-    <!-- Hamburger icon for mobile with Menu text -->
+    <!-- Hamburger button for mobile -->
     <button
       class="hamburger"
       @click="toggleMenu"
@@ -9,32 +9,31 @@
       aria-controls="main-nav"
       aria-label="Toggle navigation menu"
     >
-      <span class="hamburger-icon" aria-hidden="true">{{ isMenuOpen ? '✖' : '☰' }}</span>
-      <span class="hamburger-text"> Menu</span>
+      <span class="hamburger-icon" aria-hidden="true">☰</span>
+      <span class="hamburger-text">Menu</span>
     </button>
-    
-    <!-- Navigation links -->
-    <ul id="main-nav" :class="{ 'nav-links': true, 'nav-links-open': isMenuOpen }" role="menubar">
+
+    <!-- Desktop navigation (inline) -->
+    <ul class="nav-desktop" role="menubar">
       <template v-if="userStore.user">
-        <!-- Links shown when logged in -->
         <li role="none">
-          <router-link to="/" class="nav-link" @click="closeMenu" role="menuitem" :aria-current="route.path === '/' ? 'page' : undefined">
-            <span class="nav-icon" aria-hidden="true">+</span> Track
+          <router-link to="/" class="nav-link" role="menuitem" :aria-current="route.path === '/' ? 'page' : undefined">
+            Track
           </router-link>
         </li>
         <li role="none">
-          <router-link to="/dashboard" class="nav-link" @click="closeMenu" role="menuitem" :aria-current="route.path === '/dashboard' ? 'page' : undefined">
-            <span class="nav-icon" aria-hidden="true">=</span> Dashboard
+          <router-link to="/dashboard" class="nav-link" role="menuitem" :aria-current="route.path === '/dashboard' ? 'page' : undefined">
+            Dashboard
           </router-link>
         </li>
         <li role="none">
-          <router-link to="/about-tracker" class="nav-link" @click="closeMenu" role="menuitem" :aria-current="route.path === '/about-tracker' ? 'page' : undefined">
-            <span class="nav-icon" aria-hidden="true">i</span> About
+          <router-link to="/about-tracker" class="nav-link" role="menuitem" :aria-current="route.path === '/about-tracker' ? 'page' : undefined">
+            About
           </router-link>
         </li>
         <li role="none">
-          <router-link to="/feedback" class="nav-link" @click="closeMenu" role="menuitem" :aria-current="route.path === '/feedback' ? 'page' : undefined">
-            <span class="nav-icon" aria-hidden="true">?</span> Feedback
+          <router-link to="/feedback" class="nav-link" role="menuitem" :aria-current="route.path === '/feedback' ? 'page' : undefined">
+            Feedback
           </router-link>
         </li>
         <li role="none"><button @click="handleLogout" class="nav-button" role="menuitem">Logout</button></li>
@@ -44,21 +43,77 @@
             class="theme-toggle"
             role="menuitem"
             :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
-            :title="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
           >
-            <span aria-hidden="true">{{ isDark ? '&#9788;' : '&#9790;' }}</span>
+            <span aria-hidden="true">{{ isDark ? '☀' : '☾' }}</span>
           </button>
         </li>
       </template>
       <template v-else>
-        <!-- Links shown when logged out -->
         <li role="none">
-          <router-link to="/login" class="nav-link" @click="closeMenu" role="menuitem" :aria-current="route.path === '/login' ? 'page' : undefined">
+          <router-link to="/login" class="nav-link" role="menuitem" :aria-current="route.path === '/login' ? 'page' : undefined">
             Login
           </router-link>
         </li>
       </template>
     </ul>
+
+    <!-- Mobile overlay -->
+    <Transition name="fade">
+      <div v-if="isMenuOpen" class="nav-overlay" @click="closeMenu"></div>
+    </Transition>
+
+    <!-- Mobile slide-in panel -->
+    <Transition name="slide">
+      <div v-if="isMenuOpen" id="main-nav" class="nav-mobile" role="menu">
+        <div class="nav-mobile-header">
+          <span class="nav-mobile-title">Menu</span>
+          <button class="nav-close" @click="closeMenu" aria-label="Close menu">✕</button>
+        </div>
+        <ul class="nav-mobile-links">
+          <template v-if="userStore.user">
+            <li>
+              <router-link to="/" class="nav-mobile-link" @click="closeMenu" :class="{ active: route.path === '/' }">
+                <span class="nav-mobile-icon">📊</span> Track
+              </router-link>
+            </li>
+            <li>
+              <router-link to="/dashboard" class="nav-mobile-link" @click="closeMenu" :class="{ active: route.path === '/dashboard' }">
+                <span class="nav-mobile-icon">📈</span> Dashboard
+              </router-link>
+            </li>
+            <li>
+              <router-link to="/about-tracker" class="nav-mobile-link" @click="closeMenu" :class="{ active: route.path === '/about-tracker' }">
+                <span class="nav-mobile-icon">ℹ️</span> About
+              </router-link>
+            </li>
+            <li>
+              <router-link to="/feedback" class="nav-mobile-link" @click="closeMenu" :class="{ active: route.path === '/feedback' }">
+                <span class="nav-mobile-icon">💬</span> Feedback
+              </router-link>
+            </li>
+            <li class="nav-mobile-divider"></li>
+            <li>
+              <button @click="handleLogout" class="nav-mobile-link nav-mobile-button">
+                <span class="nav-mobile-icon">🚪</span> Logout
+              </button>
+            </li>
+            <li>
+              <button @click="toggleTheme" class="nav-mobile-link nav-mobile-button">
+                <span class="nav-mobile-icon">{{ isDark ? '☀️' : '🌙' }}</span>
+                {{ isDark ? 'Light Mode' : 'Dark Mode' }}
+              </button>
+            </li>
+          </template>
+          <template v-else>
+            <li>
+              <router-link to="/login" class="nav-mobile-link" @click="closeMenu">
+                <span class="nav-mobile-icon">🔑</span> Login
+              </router-link>
+            </li>
+          </template>
+        </ul>
+      </div>
+    </Transition>
   </nav>
 </template>
 
@@ -117,101 +172,105 @@ function closeMenu() {
 </script>
 
 <style scoped>
+/* Header bar */
 .main-menu {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 0.75rem 1rem;
-  background: var(--bg-secondary);
+  background: var(--bg-primary);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
   z-index: 100;
 }
 
+/* Hamburger button - mobile only */
 .hamburger {
   display: flex;
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background: transparent;
-  border: none;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
   color: var(--text-primary);
   font-size: 1rem;
   cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hamburger:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent);
 }
 
 .hamburger-icon {
-  font-size: 1.25rem;
+  font-size: 1.1rem;
 }
 
-.nav-links {
+.hamburger-text {
+  font-weight: 500;
+}
+
+/* Desktop navigation - hidden on mobile */
+.nav-desktop {
   display: none;
   list-style: none;
   margin: 0;
-  padding: 0.5rem;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  right: 0;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
-  box-shadow: 0 4px 12px var(--shadow);
+  padding: 0;
+  gap: 0.25rem;
+  align-items: center;
 }
 
-.nav-links-open {
-  display: block;
-}
-
-.nav-links li {
+.nav-desktop li {
   margin: 0;
 }
 
 .nav-link {
   display: block;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.875rem;
   color: var(--text-primary);
   text-decoration: none;
   border-radius: 8px;
-  transition: background 0.2s ease;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .nav-link:hover {
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
+  color: var(--accent);
   text-decoration: none;
 }
 
-.nav-icon {
-  display: inline-block;
-  width: 1.5rem;
-  text-align: center;
-  margin-right: 0.5rem;
-  color: var(--text-secondary);
+.nav-link[aria-current="page"] {
+  background: var(--accent-light);
+  color: var(--accent);
 }
 
 .nav-button {
-  width: 100%;
-  text-align: left;
-  padding: 0.75rem 1rem;
+  padding: 0.5rem 0.875rem;
   background: transparent;
   border: none;
-  color: var(--text-primary);
+  color: var(--text-secondary);
+  font-weight: 500;
   cursor: pointer;
   border-radius: 8px;
+  transition: all 0.2s ease;
 }
 
 .nav-button:hover {
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
+  color: var(--text-primary);
 }
 
 .theme-toggle {
-  width: 100%;
-  padding: 0.75rem 1rem;
-  background: var(--bg-tertiary);
+  padding: 0.5rem 0.75rem;
+  background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: 8px;
   color: var(--text-primary);
-  font-size: 1.25rem;
+  font-size: 1.1rem;
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -221,32 +280,160 @@ function closeMenu() {
   border-color: var(--accent);
 }
 
+/* Mobile overlay */
+.nav-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 200;
+}
+
+/* Mobile slide-in panel */
+.nav-mobile {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 280px;
+  max-width: 80vw;
+  background: var(--bg-primary);
+  box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
+  z-index: 300;
+  display: flex;
+  flex-direction: column;
+}
+
+.nav-mobile-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-secondary);
+}
+
+.nav-mobile-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.nav-close {
+  padding: 0.5rem;
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 1.25rem;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.nav-close:hover {
+  background: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.nav-mobile-links {
+  list-style: none;
+  margin: 0;
+  padding: 0.75rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.nav-mobile-links li {
+  margin: 0;
+}
+
+.nav-mobile-link {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  color: var(--text-primary);
+  text-decoration: none;
+  border-radius: 10px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.nav-mobile-link:hover {
+  background: var(--bg-secondary);
+  text-decoration: none;
+}
+
+.nav-mobile-link.active {
+  background: var(--accent-light);
+  color: var(--accent);
+}
+
+.nav-mobile-button {
+  width: 100%;
+  background: transparent;
+  border: none;
+  text-align: left;
+  cursor: pointer;
+  font-size: 1rem;
+}
+
+.nav-mobile-icon {
+  font-size: 1.1rem;
+  width: 1.5rem;
+  text-align: center;
+}
+
+.nav-mobile-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 0.75rem 0;
+}
+
+/* Slide transition */
+.slide-enter-active,
+.slide-leave-active {
+  transition: transform 0.3s ease;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+  transform: translateX(-100%);
+}
+
+/* Fade transition for overlay */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
 /* Desktop styles */
 @media (min-width: 768px) {
   .hamburger {
     display: none;
   }
 
-  .nav-links {
+  .nav-desktop {
     display: flex;
-    position: static;
-    background: transparent;
-    border: none;
-    box-shadow: none;
-    gap: 0.5rem;
   }
 
-  .nav-link {
-    padding: 0.5rem 0.75rem;
+  .nav-mobile,
+  .nav-overlay {
+    display: none !important;
   }
+}
 
-  .nav-button {
-    padding: 0.5rem 0.75rem;
-  }
-
-  .theme-toggle {
-    width: auto;
-    padding: 0.5rem 0.75rem;
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .slide-enter-active,
+  .slide-leave-active,
+  .fade-enter-active,
+  .fade-leave-active {
+    transition: none;
   }
 }
 </style>

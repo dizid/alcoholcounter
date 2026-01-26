@@ -1,11 +1,11 @@
-/* Global styles for Alcohol Support Tracker with customized cheerful design */
+/* Global styles for Alcohol Support Tracker - clean, calming design */
 
 /* Reset and Base Styles */
 body {
   margin: 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  background-color: #f9f9f9; /* Lighter background for cheerfulness */
-  color: #333;
+  background-color: var(--bg-primary, #f9f9f9);
+  color: var(--text-primary, #333);
 }
 
 #app {
@@ -18,128 +18,15 @@ body {
   grid-template-rows: auto 1fr auto;
 }
 
-/* Header Styles */
+/* Header Styles - minimal, let component handle details */
 header {
   grid-area: header;
-  background-color: #3498db; /* Softer blue */
-  color: white;
-  padding: 1rem;
-  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-  position: relative; /* Anchor for dropdown */
-  height: 60px; /* Fixed height */
-  z-index: 1000; /* Ensure header stays above submenu */
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
-.main-menu {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 1rem;
-  height: 100%; /* Full header height */
-}
-
-.nav-links {
-  display: flex;
-  gap: 1rem;
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.nav-link,
-.nav-button {
-  color: white;
-  text-decoration: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  transition: background 0.3s;
-}
-
-.nav-link:hover,
-.nav-button:hover {
-  background-color: rgba(255, 255, 255, 0.2);
-}
-
-.nav-icon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 20px;
-  height: 20px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  font-size: 0.75rem;
-  font-weight: bold;
-  margin-right: 0.5rem;
-}
-
-.hamburger {
-  display: none;
-  background: none;
-  border: none;
-  color: white;
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0.5rem;
-  z-index: 1001; /* Above other content */
-}
-
-/* Mobile styles for hamburger menu */
-@media (max-width: 768px) {
-  .hamburger {
-    display: flex;
-    align-items: center;
-  }
-
-  .nav-links {
-    display: none;
-    flex-direction: column;
-    position: absolute;
-    top: 100%; /* Start just below hamburger */
-    left: 0; /* Full width */
-    width: 100%;
-    background-color: #3498db;
-    padding: 1rem;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-    max-height: calc(100vh - 60px); /* Prevent footer overlap */
-    overflow-y: auto;
-    z-index: 999; /* Below header, above content */
-  }
-
-  .nav-links-open {
-    display: flex;
-  }
-
-  .nav-link,
-  .nav-button {
-    width: 100%;
-    text-align: left;
-    padding: 0.75rem 1rem; /* Consistent spacing */
-    white-space: nowrap; /* Prevent wrapping */
-  }
-}
-
-/* Desktop styles: Hide hamburger and show nav links */
-@media (min-width: 769px) {
-  .hamburger {
-    display: none;
-  }
-
-  .nav-links {
-    display: flex !important;
-    position: static;
-    background-color: transparent;
-    box-shadow: none;
-  }
-
-  .nav-link,
-  .nav-button {
-    width: auto;
-    text-align: center;
-  }
-}
+/* Navigation styles moved to MainMenu.vue component */
 
 /* Main Content Styles */
 main {
