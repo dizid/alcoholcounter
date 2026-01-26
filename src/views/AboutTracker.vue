@@ -1,7 +1,7 @@
 <template>
   <!-- Main container for the About Tracker page -->
   <div class="main-container">
-    <h1>About Your Alcohol Support Tracker</h1>
+    <h1>About DrinkTracker</h1>
     <p>Learn how our app empowers you to moderate alcohol use with science-backed tools and AI advice.</p>
     
     <!-- Collapsible submenu for navigation -->
