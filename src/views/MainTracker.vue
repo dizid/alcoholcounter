@@ -4,8 +4,7 @@
 
   <!-- Main container for the daily drink tracker UI -->
   <article class="main-container">
-    <h1>Daily Drink Tracker</h1>
-    <p>Current drinks today: {{ drinkCount }}</p>
+    <p class="drink-count">Current drinks today: {{ drinkCount }}</p>
     <p>{{ progressMessage }}</p>
     <!-- Quick actions for logging drinks -->
     <div class="drink-actions">

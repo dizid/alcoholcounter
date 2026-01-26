@@ -2,7 +2,7 @@
 <template>
   <!-- Container for login/signup UI -->
   <div class="container">
-    <h1>Alcohol Support Tracker</h1>
+    <h1>DrinkTracker</h1>
     <p>Login or create an account to start tracking.</p>
 
     <!-- Warning message for session expiry -->

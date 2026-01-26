@@ -1,7 +1,7 @@
 <template>
   <!-- Main container for the About Tracker page -->
   <div class="container">
-    <h1>About Your Alcohol Support Tracker</h1>
+    <h1>About DrinkTracker</h1>
     <p>Learn how our app empowers you to moderate alcohol use with science-backed tools and AI advice.</p>
     
     <!-- Collapsible submenu for navigation -->
@@ -39,7 +39,7 @@
         <p>Because I drink too much I made this app. I hope it will benefit you too 🙏</p>
         <p>Good luck, have fun.</p>
         <div class="logo-container">
-          <img src="@/assets/logo.png" alt="Cheerful Alcohol Support Tracker Logo" class="logo-image" />
+          <img src="@/assets/logo.png" alt="DrinkTracker Logo" class="logo-image" />
         </div>
         <h3>Privacy Policy</h3>
         <p>Your privacy is important to us. We will never share your information with anyone. We only use your data to improve your experience. By using our service, you agree to this simple policy. If you have any questions, feel free to contact us.</p>
@@ -115,14 +115,14 @@ function toggleSubmenu() {
 
 // Define the brief explanation as raw Markdown (shortened to ~100 words)
 const briefExplanation = `
-The Alcohol Support Tracker is a mobile and web app to help you moderate alcohol use with evidence-based tools. Track drinks daily, view progress charts, and use mindfulness and CBT exercises to manage urges. Grok AI provides personalized advice based on your data, enhancing engagement. **Why it works**: CBT rewires negative thoughts, and Mindfulness-Based Relapse Prevention (MBRP) reduces cravings, proven to lower drinking. **Best use**: Log drinks daily, use exercises during urges, and review AI insights weekly for 8-12 weeks. Secure, free to start, and ideal for recovery or moderation.
+DrinkTracker is a mobile and web app to help you moderate alcohol use with evidence-based tools. Track drinks daily, view progress charts, and use mindfulness and CBT exercises to manage urges. Grok AI provides personalized advice based on your data, enhancing engagement. **Why it works**: CBT rewires negative thoughts, and Mindfulness-Based Relapse Prevention (MBRP) reduces cravings, proven to lower drinking. **Best use**: Log drinks daily, use exercises during urges, and review AI insights weekly for 8-12 weeks. Secure, free to start, and ideal for recovery or moderation.
 `
 
 // Define the long explanation as raw Markdown (shortened to ~300 words)
 const longExplanation = `
-### Why the Alcohol Support Tracker Works
+### Why DrinkTracker Works
 
-The Alcohol Support Tracker empowers users to manage alcohol use through a blend of science-backed tools and AI, available on web, iOS, and Android. Built by Marc from Rotterdam, it’s a supportive companion for moderation or recovery.
+DrinkTracker empowers users to manage alcohol use through a blend of science-backed tools and AI, available on web, iOS, and Android. Built by Marc from Rotterdam, it’s a supportive companion for moderation or recovery.
 
 #### Science-Backed Approach
 - **Cognitive Behavioral Therapy (CBT)**: CBT helps you identify triggers (e.g., stress), reframe thoughts (like "I need a drink" to "I can relax differently"), and build skills for high-risk situations. Studies show CBT reduces drinking by fostering coping strategies, with digital tools boosting abstinence.

@@ -1,10 +1,10 @@
 <template>
   <!-- Main menu navigation -->
   <nav class="main-menu">
-    <!-- Brand -->
+    <!-- Brand with rotating drink icons -->
     <div class="nav-brand">
-      <span class="nav-brand-icon">🌿</span>
-      <span class="nav-brand-text">Tracker</span>
+      <span class="nav-brand-icon" :key="currentDrink">{{ currentDrink }}</span>
+      <span class="nav-brand-text">DrinkTracker</span>
     </div>
 
     <!-- Hamburger button for mobile -->
@@ -63,8 +63,8 @@
       <div v-if="isMenuOpen" id="main-nav" class="nav-mobile" role="menu">
         <div class="nav-mobile-header">
           <div class="nav-brand">
-            <span class="nav-brand-icon">🌿</span>
-            <span class="nav-brand-text">Tracker</span>
+            <span class="nav-brand-icon" :key="currentDrink">{{ currentDrink }}</span>
+            <span class="nav-brand-text">DrinkTracker</span>
           </div>
           <button class="nav-close" @click="closeMenu" aria-label="Close menu">✕</button>
         </div>
@@ -111,7 +111,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { logout } from '../services/auth'
@@ -120,6 +120,25 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const isMenuOpen = ref(false)
+
+// Rotating drink logos
+const drinks = ['🍺', '🍷', '🥤', '🍊']
+const drinkIndex = ref(0)
+const currentDrink = ref(drinks[0])
+let drinkInterval = null
+
+onMounted(() => {
+  drinkInterval = setInterval(() => {
+    drinkIndex.value = (drinkIndex.value + 1) % drinks.length
+    currentDrink.value = drinks[drinkIndex.value]
+  }, 3000)
+})
+
+onUnmounted(() => {
+  if (drinkInterval) {
+    clearInterval(drinkInterval)
+  }
+})
 
 async function handleLogout() {
   try {
@@ -168,6 +187,22 @@ function closeMenu() {
 
 .nav-brand-icon {
   font-size: 1.4rem;
+  display: inline-block;
+  animation: drinkPop 0.4s ease;
+}
+
+@keyframes drinkPop {
+  0% {
+    transform: scale(0.5);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.2);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .nav-brand-text {

@@ -128,7 +128,7 @@ onBeforeUnmount(() => {
 })
 
 function showNotificationWithAction(body, includeAction) {
-  const notification = new Notification('Alcohol Support Tracker', {
+  const notification = new Notification('DrinkTracker', {
     body: includeAction ? `${body}\n\nClick to log a drink` : body,
     icon: '/logo.png',
     tag: 'reminder',

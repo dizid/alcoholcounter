@@ -47,7 +47,7 @@ describe('Login view', () => {
     it('should render login form', async () => {
       const wrapper = await mountLogin()
 
-      expect(wrapper.find('h1').text()).toBe('Alcohol Support Tracker')
+      expect(wrapper.find('h1').text()).toBe('DrinkTracker')
       expect(wrapper.find('input[type="email"]').exists()).toBe(true)
       expect(wrapper.find('input[type="password"]').exists()).toBe(true)
       expect(wrapper.find('button[type="submit"]').text()).toBe('Login')

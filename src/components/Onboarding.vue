@@ -15,7 +15,7 @@
         <div class="step-icon">
           <span class="icon-circle">1</span>
         </div>
-        <h2>Welcome to Alcohol Support Tracker</h2>
+        <h2>Welcome to DrinkTracker</h2>
         <p class="step-description">
           You're taking an important step toward mindful drinking. This app helps you:
         </p>
