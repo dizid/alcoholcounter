@@ -1,6 +1,12 @@
 <template>
   <!-- Main menu navigation -->
   <nav class="main-menu">
+    <!-- Brand -->
+    <div class="nav-brand">
+      <span class="nav-brand-icon">🌿</span>
+      <span class="nav-brand-text">Tracker</span>
+    </div>
+
     <!-- Hamburger button for mobile -->
     <button
       class="hamburger"
@@ -37,16 +43,6 @@
           </router-link>
         </li>
         <li role="none"><button @click="handleLogout" class="nav-button" role="menuitem">Logout</button></li>
-        <li role="none">
-          <button
-            @click="toggleTheme"
-            class="theme-toggle"
-            role="menuitem"
-            :aria-label="isDark ? 'Switch to light mode' : 'Switch to dark mode'"
-          >
-            <span aria-hidden="true">{{ isDark ? '☀' : '☾' }}</span>
-          </button>
-        </li>
       </template>
       <template v-else>
         <li role="none">
@@ -66,7 +62,10 @@
     <Transition name="slide">
       <div v-if="isMenuOpen" id="main-nav" class="nav-mobile" role="menu">
         <div class="nav-mobile-header">
-          <span class="nav-mobile-title">Menu</span>
+          <div class="nav-brand">
+            <span class="nav-brand-icon">🌿</span>
+            <span class="nav-brand-text">Tracker</span>
+          </div>
           <button class="nav-close" @click="closeMenu" aria-label="Close menu">✕</button>
         </div>
         <ul class="nav-mobile-links">
@@ -97,12 +96,6 @@
                 <span class="nav-mobile-icon">🚪</span> Logout
               </button>
             </li>
-            <li>
-              <button @click="toggleTheme" class="nav-mobile-link nav-mobile-button">
-                <span class="nav-mobile-icon">{{ isDark ? '☀️' : '🌙' }}</span>
-                {{ isDark ? 'Light Mode' : 'Dark Mode' }}
-              </button>
-            </li>
           </template>
           <template v-else>
             <li>
@@ -118,7 +111,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { useUserStore } from '../stores/user'
 import { logout } from '../services/auth'
@@ -127,31 +120,6 @@ const router = useRouter()
 const route = useRoute()
 const userStore = useUserStore()
 const isMenuOpen = ref(false)
-const isDark = ref(false)
-
-// Initialize theme from localStorage or system preference
-onMounted(() => {
-  const savedTheme = localStorage.getItem('theme')
-  if (savedTheme) {
-    isDark.value = savedTheme === 'dark'
-  } else {
-    // Check system preference
-    isDark.value = window.matchMedia('(prefers-color-scheme: dark)').matches
-  }
-  applyTheme()
-})
-
-// Toggle between light and dark theme
-function toggleTheme() {
-  isDark.value = !isDark.value
-  applyTheme()
-  localStorage.setItem('theme', isDark.value ? 'dark' : 'light')
-}
-
-// Apply theme to document
-function applyTheme() {
-  document.documentElement.setAttribute('data-theme', isDark.value ? 'dark' : 'light')
-}
 
 async function handleLogout() {
   try {
@@ -172,17 +140,40 @@ function closeMenu() {
 </script>
 
 <style scoped>
-/* Header bar */
+/* Header bar - gradient glass effect */
 .main-menu {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border);
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(to bottom,
+    rgba(250, 252, 253, 0.98),
+    rgba(240, 247, 244, 0.95));
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.12);
   position: sticky;
   top: 0;
   z-index: 100;
+  box-shadow: 0 2px 12px rgba(16, 185, 129, 0.06);
+}
+
+/* Brand logo */
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.nav-brand-icon {
+  font-size: 1.4rem;
+}
+
+.nav-brand-text {
+  font-size: 1.1rem;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
 }
 
 /* Hamburger button - mobile only */
@@ -191,18 +182,20 @@ function closeMenu() {
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(16, 185, 129, 0.15);
+  border-radius: 10px;
   color: var(--text-primary);
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.08);
 }
 
 .hamburger:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--accent);
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.12);
 }
 
 .hamburger-icon {
@@ -219,7 +212,7 @@ function closeMenu() {
   list-style: none;
   margin: 0;
   padding: 0;
-  gap: 0.25rem;
+  gap: 0.5rem;
   align-items: center;
 }
 
@@ -227,57 +220,53 @@ function closeMenu() {
   margin: 0;
 }
 
+/* Soft card nav items */
 .nav-link {
   display: block;
-  padding: 0.5rem 0.875rem;
+  padding: 0.5rem 1rem;
   color: var(--text-primary);
   text-decoration: none;
-  border-radius: 8px;
+  border-radius: 10px;
   font-weight: 500;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(16, 185, 129, 0.1);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.06);
   transition: all 0.2s ease;
 }
 
 .nav-link:hover {
-  background: var(--bg-secondary);
-  color: var(--accent);
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(16, 185, 129, 0.25);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.12);
+  transform: translateY(-1px);
   text-decoration: none;
+  color: var(--accent);
 }
 
 .nav-link[aria-current="page"] {
   background: var(--accent-light);
   color: var(--accent);
+  border-color: rgba(16, 185, 129, 0.3);
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
 }
 
 .nav-button {
-  padding: 0.5rem 0.875rem;
-  background: transparent;
-  border: none;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(16, 185, 129, 0.1);
   color: var(--text-secondary);
   font-weight: 500;
   cursor: pointer;
-  border-radius: 8px;
+  border-radius: 10px;
   transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(16, 185, 129, 0.04);
 }
 
 .nav-button:hover {
-  background: var(--bg-secondary);
+  background: rgba(255, 255, 255, 0.9);
+  border-color: rgba(16, 185, 129, 0.2);
   color: var(--text-primary);
-}
-
-.theme-toggle {
-  padding: 0.5rem 0.75rem;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text-primary);
-  font-size: 1.1rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.theme-toggle:hover {
-  background: var(--accent-light);
-  border-color: var(--accent);
+  transform: translateY(-1px);
 }
 
 /* Mobile overlay */
@@ -308,14 +297,10 @@ function closeMenu() {
   justify-content: space-between;
   align-items: center;
   padding: 1rem 1.25rem;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-secondary);
-}
-
-.nav-mobile-title {
-  font-weight: 600;
-  font-size: 1.1rem;
-  color: var(--text-primary);
+  border-bottom: 1px solid rgba(16, 185, 129, 0.12);
+  background: linear-gradient(to bottom,
+    rgba(250, 252, 253, 0.98),
+    rgba(240, 247, 244, 0.95));
 }
 
 .nav-close {
@@ -417,6 +402,10 @@ function closeMenu() {
     display: none;
   }
 
+  .nav-brand {
+    display: flex;
+  }
+
   .nav-desktop {
     display: flex;
   }
@@ -424,6 +413,13 @@ function closeMenu() {
   .nav-mobile,
   .nav-overlay {
     display: none !important;
+  }
+}
+
+/* Mobile: hide brand in header (shown in hamburger menu) */
+@media (max-width: 767px) {
+  .main-menu > .nav-brand {
+    display: none;
   }
 }
 
