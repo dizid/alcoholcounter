@@ -243,41 +243,31 @@ function closeMenu() {
 
 /* Desktop navigation - hidden on mobile by default */
 .nav-desktop {
-  display: none !important;
-  list-style: none !important;
-  margin: 0 !important;
-  padding: 0 !important;
+  display: none;
   gap: 0.5rem;
   align-items: center;
 }
 
-.nav-desktop li {
-  margin: 0 !important;
-  padding: 0 !important;
-  list-style: none !important;
-}
-
 /* Soft card nav items */
 .nav-link {
-  display: block !important;
-  padding: 0.5rem 1rem !important;
-  color: var(--text-primary) !important;
-  text-decoration: none !important;
-  border-radius: 10px !important;
-  font-weight: 500 !important;
-  background: rgba(255, 255, 255, 0.7) !important;
-  border: 1px solid rgba(16, 185, 129, 0.1) !important;
+  display: block;
+  padding: 0.5rem 1rem;
+  color: var(--text-primary);
+  text-decoration: none;
+  border-radius: 10px;
+  font-weight: 500;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(16, 185, 129, 0.1);
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.06);
   transition: all 0.2s ease;
 }
 
 .nav-link:hover {
-  background: rgba(255, 255, 255, 0.95) !important;
-  border-color: rgba(16, 185, 129, 0.25) !important;
+  background: rgba(255, 255, 255, 0.95);
+  border-color: rgba(16, 185, 129, 0.25);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.12);
   transform: translateY(-1px);
-  text-decoration: none !important;
-  color: var(--accent) !important;
+  color: var(--accent);
 }
 
 .nav-link[aria-current="page"] {
@@ -357,34 +347,24 @@ function closeMenu() {
 }
 
 .nav-mobile-links {
-  list-style: none !important;
-  margin: 0 !important;
-  padding: 0.75rem !important;
+  padding: 0.75rem;
   flex: 1;
   overflow-y: auto;
 }
 
-.nav-mobile-links li {
-  margin: 0 !important;
-  padding: 0 !important;
-  list-style: none !important;
-}
-
 .nav-mobile-link {
-  display: flex !important;
-  align-items: center !important;
-  gap: 0.75rem !important;
-  padding: 0.875rem 1rem !important;
-  color: var(--text-primary) !important;
-  text-decoration: none !important;
-  border-radius: 10px !important;
-  font-weight: 500 !important;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  color: var(--text-primary);
+  border-radius: 10px;
+  font-weight: 500;
   transition: all 0.2s ease;
 }
 
 .nav-mobile-link:hover {
-  background: var(--bg-secondary) !important;
-  text-decoration: none !important;
+  background: var(--bg-secondary);
 }
 
 .nav-mobile-link.active {
@@ -438,20 +418,20 @@ function closeMenu() {
 /* Desktop styles */
 @media (min-width: 768px) {
   .hamburger {
-    display: none !important;
+    display: none;
   }
 
   .nav-brand {
-    display: flex !important;
+    display: flex;
   }
 
   .nav-desktop {
-    display: flex !important;
+    display: flex;
   }
 
   .nav-mobile,
   .nav-overlay {
-    display: none !important;
+    display: none;
   }
 }
 
