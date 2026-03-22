@@ -1,38 +1,24 @@
-// Authentication service file for Supabase auth operations
+// Authentication service — Firebase Auth (Google only)
 
-import { supabase } from '../supabase' // Import Supabase client
+import { loginWithGoogle as fbLoginWithGoogle, logout as fbLogout, auth } from '../firebase'
+import { onAuthStateChanged } from 'firebase/auth'
 
-// Function for email/password login
-export async function login(email, password) {
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password,
-  })
-  if (error) throw error // Throw on auth error
+// Google Sign-In via popup
+export async function loginWithProvider() {
+  await fbLoginWithGoogle()
 }
 
-// Function for email/password signup (with email confirmation)
-export async function signUp(email, password) {
-  const { error } = await supabase.auth.signUp({
-    email,
-    password,
-  })
-  if (error) throw error
-}
-
-// Function for OAuth provider login (e.g., Google)
-export async function loginWithProvider(provider) {
-  const { error } = await supabase.auth.signInWithOAuth({
-    provider,
-  })
-  if (error) throw error
-}
-
-// Function for logout
+// Sign out
 export async function logout() {
-  const { error } = await supabase.auth.signOut()
-  if (error) {
-    console.error('Supabase signOut error:', error.message)
-    throw new Error('Failed to log out. Please try again.')
-  }
+  await fbLogout()
+}
+
+// Subscribe to auth state changes; returns unsubscribe function
+export function onAuthChange(callback) {
+  return onAuthStateChanged(auth, callback)
+}
+
+// Get the currently authenticated user (or null)
+export function getCurrentUser() {
+  return auth.currentUser
 }

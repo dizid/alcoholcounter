@@ -184,11 +184,10 @@ import { useRouter } from 'vue-router'
 import Chart from 'chart.js/auto'
 import { marked } from 'marked'
 import PulseLoader from 'vue-spinner/src/PulseLoader.vue'
-import { getHistoricalCounts, getContextFrequencies, getUserTriggers, getUserReflections, getRecentDrinkLogs, deleteDrinkLog, updateDrinkLog, getMoodCorrelations } from '../services/db'
+import { getHistoricalCounts, getContextFrequencies, getUserTriggers, getUserReflections, getRecentDrinkLogs, deleteDrinkLog, updateDrinkLog, getMoodCorrelations, getWeeklyGoal } from '../services/db'
 import { getGrokAdvice } from '../services/grok'
 import { logout } from '../services/auth'
 import { isAuthError, handleAuthError } from '../services/authErrorHandler'
-import { supabase } from '../supabase'
 import Achievements from '../components/Achievements.vue'
 
 const router = useRouter()
@@ -254,10 +253,10 @@ async function loadData() {
   aiLoading.value = true
   aiError.value = ''
   try {
-    // Load user settings (goal)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user?.user_metadata?.weekly_goal !== undefined) {
-      weeklyGoal.value = user.user_metadata.weekly_goal
+    // Load user's weekly goal from the database
+    const goal = await getWeeklyGoal()
+    if (goal !== null) {
+      weeklyGoal.value = goal
     }
 
     // Gather historical drinking patterns (daily counts over last 30 days)

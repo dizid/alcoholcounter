@@ -16,7 +16,8 @@
 <script setup>
 import { onMounted, onBeforeUnmount, ref, provide } from 'vue'
 import { useUserStore } from './stores/user'
-import { supabase } from './supabase'
+import { onAuthStateChanged } from 'firebase/auth'
+import { auth } from './firebase'
 import { addDrinkLog } from './services/db'
 import MainMenu from './components/MainMenu.vue'
 
@@ -29,39 +30,28 @@ provide('quickLogTrigger', quickLogTrigger)
 // Store notification interval ID for cleanup
 const notificationIntervalId = ref(null)
 
-onMounted(async () => {
-  // First check if a session exists in localStorage
-  const { data: { session } } = await supabase.auth.getSession()
+// Unsubscribe handle for the auth listener
+let unsubscribeAuth = null
 
-  if (session) {
-    // Session exists - validate it against server
-    const { data: { user }, error } = await supabase.auth.getUser()
-
-    if (!error && user) {
-      // Valid session
-      userStore.setUser(user)
+onMounted(() => {
+  // Listen for Firebase auth state changes (login, logout, token refresh)
+  unsubscribeAuth = onAuthStateChanged(auth, async (user) => {
+    userStore.setUser(user)
+    if (user) {
       setupNotifications()
     } else {
-      // Session exists but is invalid/expired
-      console.warn('Session expired, clearing user state')
-      userStore.setUser(null)
-      await supabase.auth.signOut({ scope: 'local' })
+      // Clear notification interval when user logs out
+      if (notificationIntervalId.value) {
+        clearInterval(notificationIntervalId.value)
+        notificationIntervalId.value = null
+      }
     }
-  } else {
-    // No session exists - user is logged out
-    userStore.setUser(null)
-  }
-
-  // Listen for auth state changes (login, logout, token refresh)
-  supabase.auth.onAuthStateChange((event, session) => {
-    userStore.setUser(session?.user || null)
-    if (session) setupNotifications()
   })
 
   // Check for quick-log action from URL (used by notification click)
   const urlParams = new URLSearchParams(window.location.search)
   if (urlParams.get('action') === 'quicklog') {
-    await handleQuickLogFromNotification()
+    handleQuickLogFromNotification()
     // Clean up URL
     window.history.replaceState({}, document.title, window.location.pathname)
   }
@@ -119,12 +109,13 @@ function startNotificationInterval() {
   }, 30 * 60 * 1000)
 }
 
-// Clean up interval when component unmounts
+// Clean up when component unmounts
 onBeforeUnmount(() => {
   if (notificationIntervalId.value) {
     clearInterval(notificationIntervalId.value)
     notificationIntervalId.value = null
   }
+  if (unsubscribeAuth) unsubscribeAuth()
 })
 
 function showNotificationWithAction(body, includeAction) {

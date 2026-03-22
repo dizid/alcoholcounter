@@ -198,10 +198,9 @@
 <script setup>
 import { ref, watch, onMounted, computed, inject } from 'vue'
 import { useRouter } from 'vue-router'
-import { addDrinkLog, getTodayDrinkCount, getHistoricalCounts, addUserTrigger, getUserTriggers, addUserReflection, getUserReflections, logMindfulnessSession } from '../services/db'
+import { addDrinkLog, getTodayDrinkCount, getHistoricalCounts, addUserTrigger, getUserTriggers, addUserReflection, getUserReflections, logMindfulnessSession, getWeeklyGoal, setWeeklyGoal } from '../services/db'
 import { getMindfulnessTip } from '../services/grok'
 import { isAuthError, handleAuthError } from '../services/authErrorHandler'
-import { supabase } from '../supabase'
 import ContextForm from '../components/ContextForm.vue'
 import Onboarding from '../components/Onboarding.vue'
 
@@ -461,29 +460,28 @@ async function fetchWeeklyDrinkCount() {
 // Check if user has completed onboarding
 async function checkOnboardingStatus() {
   try {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      // Check user metadata for onboarding flag
-      const hasCompletedOnboarding = user.user_metadata?.has_completed_onboarding === true
-      showOnboarding.value = !hasCompletedOnboarding
+    // Onboarding flag stored in localStorage (Firebase has no user metadata)
+    showOnboarding.value = !localStorage.getItem('onboarding_done')
 
-      // Load user's weekly goal if set
-      if (user.user_metadata?.weekly_goal !== undefined) {
-        weeklyGoal.value = user.user_metadata.weekly_goal
-      }
+    // Load user's weekly goal from the database
+    const goal = await getWeeklyGoal()
+    if (goal !== null) {
+      weeklyGoal.value = goal
     }
   } catch (err) {
     console.error('Error checking onboarding status:', err)
-    // Don't show onboarding on error - let user use app
+    // Don't show onboarding on error - let user use the app
     showOnboarding.value = false
   }
 }
 
 // Handle onboarding completion
-function handleOnboardingComplete(data) {
+async function handleOnboardingComplete(data) {
   showOnboarding.value = false
-  if (data?.goal !== null) {
+  localStorage.setItem('onboarding_done', '1')
+  if (data?.goal !== null && data?.goal !== undefined) {
     weeklyGoal.value = data.goal
+    await setWeeklyGoal(data.goal).catch(err => console.error('Error saving goal:', err))
   }
 }
 

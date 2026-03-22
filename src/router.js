@@ -1,8 +1,9 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { onAuthStateChanged } from 'firebase/auth'
+import { auth } from './firebase'
 import { useUserStore } from './stores/user'
-import { supabase } from './supabase'
 
-// Lazy load views for code splitting - each view becomes a separate chunk
+// Lazy load views for code splitting
 const MainTracker = () => import('./views/MainTracker.vue')
 const Dashboard = () => import('./views/Dashboard.vue')
 const Feedback = () => import('./views/Feedback.vue')
@@ -22,41 +23,35 @@ const router = createRouter({
   routes
 })
 
+// Resolves the current Firebase auth state exactly once
+function waitForAuth() {
+  return new Promise(resolve => {
+    const unsubscribe = onAuthStateChanged(auth, user => {
+      unsubscribe()
+      resolve(user)
+    })
+  })
+}
+
 // Auth guard: redirect to login if not authenticated
 router.beforeEach(async (to, from, next) => {
-  const userStore = useUserStore()
-
-  if (to.meta.requiresAuth) {
-    if (!userStore.user) {
-      // No user in store - check if session exists first
-      const { data: { session } } = await supabase.auth.getSession()
-
-      if (session) {
-        // Session exists - validate it against server
-        const { data: { user }, error } = await supabase.auth.getUser()
-
-        if (!error && user) {
-          // Valid session - update store and allow through
-          userStore.setUser(user)
-          next()
-          return
-        } else {
-          // Session invalid/expired - clear it
-          await supabase.auth.signOut({ scope: 'local' })
-        }
-      }
-
-      // No valid session - redirect to login
-      next({
-        path: '/login',
-        query: { redirect: to.fullPath }
-      })
-      return
-    }
+  if (!to.meta.requiresAuth) {
     next()
-  } else {
-    next()
+    return
   }
+
+  const user = await waitForAuth()
+
+  if (!user) {
+    next({ path: '/login', query: { redirect: to.fullPath } })
+    return
+  }
+
+  // Keep the Pinia store in sync
+  const userStore = useUserStore()
+  if (!userStore.user) userStore.setUser(user)
+
+  next()
 })
 
 export default router

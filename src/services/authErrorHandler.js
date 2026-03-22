@@ -1,6 +1,6 @@
 import { useRouter } from 'vue-router'
 import { useUserStore } from '../stores/user'
-import { supabase } from '../supabase'
+import { logout } from './auth'
 
 /**
  * Detects if an error is authentication-related
@@ -30,8 +30,8 @@ export async function handleAuthError(error, context = '') {
   // Clear user state
   userStore.setUser(null)
 
-  // Clean up session
-  await supabase.auth.signOut({ scope: 'local' })
+  // Sign out from Firebase
+  await logout().catch(() => {})
 
   // Redirect to login with context
   router.push({

@@ -117,7 +117,6 @@
 
 <script setup>
 import { ref } from 'vue'
-import { supabase } from '../supabase'
 
 const emit = defineEmits(['complete'])
 
@@ -148,41 +147,9 @@ function previousStep() {
 
 async function completeOnboarding() {
   saving.value = true
-
-  try {
-    const { data: { user } } = await supabase.auth.getUser()
-
-    if (user) {
-      // Save onboarding completion and goal (if set)
-      const goalValue = skipGoal.value ? null : selectedGoal.value
-
-      // Update user metadata to mark onboarding as complete
-      await supabase.auth.updateUser({
-        data: {
-          has_completed_onboarding: true,
-          weekly_goal: goalValue
-        }
-      })
-
-      // If goal was set, also save to user_goals table (will be created later)
-      if (goalValue !== null) {
-        await supabase.from('user_goals').upsert({
-          user_id: user.id,
-          weekly_limit: goalValue,
-          updated_at: new Date().toISOString()
-        }, { onConflict: 'user_id' })
-      }
-    }
-
-    // Emit completion event
-    emit('complete', { goal: skipGoal.value ? null : selectedGoal.value })
-  } catch (err) {
-    console.error('Error completing onboarding:', err)
-    // Still emit complete even if save fails - don't block the user
-    emit('complete', { goal: skipGoal.value ? null : selectedGoal.value })
-  } finally {
-    saving.value = false
-  }
+  // Saving is handled by MainTracker.vue's handleOnboardingComplete
+  emit('complete', { goal: skipGoal.value ? null : selectedGoal.value })
+  saving.value = false
 }
 </script>
 

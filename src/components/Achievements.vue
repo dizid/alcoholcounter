@@ -46,7 +46,18 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { supabase } from '../supabase'
+import { getIdToken } from '../firebase'
+
+// Fetch helper for achievements API
+async function api(path, options = {}) {
+  const token = await getIdToken()
+  const res = await fetch(path, {
+    ...options,
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, ...options.headers },
+  })
+  if (!res.ok) throw new Error(`API error ${res.status}`)
+  return res.json()
+}
 
 const props = defineProps({
   trackingStreak: { type: Number, default: 0 },
@@ -122,17 +133,8 @@ function formatUnlockDate(badgeId) {
 // Load unlocked achievements
 async function loadAchievements() {
   try {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
-    const { data, error } = await supabase
-      .from('achievements')
-      .select('*')
-      .eq('user_id', user.id)
-
-    if (!error && data) {
-      unlockedAchievements.value = data
-    }
+    const data = await api('/.netlify/functions/api-achievements')
+    unlockedAchievements.value = data
   } catch (err) {
     console.error('Error loading achievements:', err)
   }
@@ -141,29 +143,21 @@ async function loadAchievements() {
 // Check and unlock new achievements
 async function checkAndUnlockAchievements() {
   try {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-
     for (const badge of allBadges) {
-      // Skip if already unlocked
       if (isBadgeUnlocked(badge.id)) continue
 
-      // Check if condition is met
       if (badge.condition()) {
-        // Unlock the achievement
-        const { error } = await supabase.from('achievements').insert({
-          user_id: user.id,
-          achievement_type: badge.id
+        await api('/.netlify/functions/api-achievements', {
+          method: 'POST',
+          body: JSON.stringify({ achievement_type: badge.id }),
         })
 
-        if (!error) {
-          // Show unlock notification
-          newUnlock.value = badge
-          setTimeout(() => { newUnlock.value = null }, 5000)
+        // Show unlock notification
+        newUnlock.value = badge
+        setTimeout(() => { newUnlock.value = null }, 5000)
 
-          // Refresh achievements list
-          await loadAchievements()
-        }
+        // Refresh achievements list
+        await loadAchievements()
       }
     }
   } catch (err) {
