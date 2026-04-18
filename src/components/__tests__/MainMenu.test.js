@@ -57,7 +57,7 @@ describe('MainMenu', () => {
 
     if (userLoggedIn) {
       const userStore = useUserStore()
-      userStore.setUser({ id: 'user-123', email: 'test@example.com' })
+      userStore.setUser({ uid: 'user-123', email: 'test@example.com' })
     }
 
     return wrapper
@@ -66,17 +66,17 @@ describe('MainMenu', () => {
   describe('rendering', () => {
     it('should render hamburger button', () => {
       const wrapper = mountMenu()
-
       expect(wrapper.find('.hamburger').exists()).toBe(true)
-      expect(wrapper.find('.hamburger-text').text()).toContain('Menu')
+    })
+
+    it('should render brand name', () => {
+      const wrapper = mountMenu()
+      expect(wrapper.find('.nav-brand-text').text()).toBe('DrinkTracker')
     })
 
     it('should show login link when logged out', () => {
       const wrapper = mountMenu(false)
-
       expect(wrapper.text()).toContain('Login')
-      expect(wrapper.text()).not.toContain('Track')
-      expect(wrapper.text()).not.toContain('Dashboard')
     })
 
     it('should show navigation links when logged in', async () => {
@@ -85,39 +85,80 @@ describe('MainMenu', () => {
 
       expect(wrapper.text()).toContain('Track')
       expect(wrapper.text()).toContain('Dashboard')
-      expect(wrapper.text()).toContain('Feedback')
       expect(wrapper.text()).toContain('About')
+      expect(wrapper.text()).toContain('Feedback')
       expect(wrapper.text()).toContain('Logout')
     })
   })
 
-  describe('menu toggle', () => {
-    it('should toggle menu open/closed on hamburger click', async () => {
+  describe('mobile menu', () => {
+    it('should open mobile menu on hamburger click', async () => {
       const wrapper = mountMenu()
-      const hamburger = wrapper.find('.hamburger')
-
-      expect(wrapper.find('.nav-links-open').exists()).toBe(false)
-
-      await hamburger.trigger('click')
-      expect(wrapper.find('.nav-links-open').exists()).toBe(true)
-
-      await hamburger.trigger('click')
-      expect(wrapper.find('.nav-links-open').exists()).toBe(false)
+      await wrapper.find('.hamburger').trigger('click')
+      expect(wrapper.find('.nav-mobile').exists()).toBe(true)
     })
 
-    it('should show X icon when menu is open', async () => {
+    it('should show overlay when mobile menu opens', async () => {
       const wrapper = mountMenu()
-
-      expect(wrapper.find('.hamburger-icon').text()).toBe('☰')
-
       await wrapper.find('.hamburger').trigger('click')
+      expect(wrapper.find('.nav-overlay').exists()).toBe(true)
+    })
 
-      expect(wrapper.find('.hamburger-icon').text()).toBe('✖')
+    it('should close mobile menu when overlay clicked', async () => {
+      const wrapper = mountMenu()
+      await wrapper.find('.hamburger').trigger('click')
+      expect(wrapper.find('.nav-mobile').exists()).toBe(true)
+
+      await wrapper.find('.nav-overlay').trigger('click')
+      expect(wrapper.find('.nav-mobile').exists()).toBe(false)
+    })
+
+    it('should close menu when close button clicked', async () => {
+      const wrapper = mountMenu()
+      await wrapper.find('.hamburger').trigger('click')
+      expect(wrapper.find('.nav-mobile').exists()).toBe(true)
+
+      await wrapper.find('.nav-close').trigger('click')
+      expect(wrapper.find('.nav-mobile').exists()).toBe(false)
+    })
+  })
+
+  describe('accessibility', () => {
+    it('should have aria-expanded on hamburger', () => {
+      const wrapper = mountMenu()
+      expect(wrapper.find('.hamburger').attributes('aria-expanded')).toBe('false')
+    })
+
+    it('should update aria-expanded when menu opens', async () => {
+      const wrapper = mountMenu()
+      await wrapper.find('.hamburger').trigger('click')
+      expect(wrapper.find('.hamburger').attributes('aria-expanded')).toBe('true')
+    })
+
+    it('should have aria-controls pointing to menu', () => {
+      const wrapper = mountMenu()
+      expect(wrapper.find('.hamburger').attributes('aria-controls')).toBe('main-nav')
+    })
+
+    it('should have aria-label on hamburger button', () => {
+      const wrapper = mountMenu()
+      expect(wrapper.find('.hamburger').attributes('aria-label')).toBe('Toggle navigation menu')
+    })
+
+    it('should have role="menubar" on desktop nav', () => {
+      const wrapper = mountMenu()
+      expect(wrapper.find('.nav-desktop').attributes('role')).toBe('menubar')
+    })
+
+    it('should have role="menu" on mobile nav', async () => {
+      const wrapper = mountMenu()
+      await wrapper.find('.hamburger').trigger('click')
+      expect(wrapper.find('.nav-mobile').attributes('role')).toBe('menu')
     })
   })
 
   describe('logout', () => {
-    it('should call logout and redirect on logout button click', async () => {
+    it('should call logout on logout button click', async () => {
       const { logout } = await import('../../services/auth')
       const wrapper = mountMenu(true)
       await wrapper.vm.$nextTick()

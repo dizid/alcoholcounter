@@ -1,18 +1,20 @@
-// Tests for Login view
+// Tests for Login view (Google Sign-In only)
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { mount, flushPromises } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import Login from '../Login.vue'
 
-// Mock auth service
-vi.mock('../../services/auth', () => ({
-  login: vi.fn(),
-  signUp: vi.fn(),
-  loginWithProvider: vi.fn(),
+// Use vi.hoisted to avoid initialization order issues
+const { mockLoginWithProvider } = vi.hoisted(() => ({
+  mockLoginWithProvider: vi.fn(),
 }))
 
-const createMockRouter = (query = {}) => {
+vi.mock('../../services/auth', () => ({
+  loginWithProvider: mockLoginWithProvider,
+}))
+
+const createMockRouter = () => {
   return createRouter({
     history: createMemoryHistory(),
     routes: [
@@ -30,6 +32,7 @@ describe('Login view', () => {
     setActivePinia(createPinia())
     router = createMockRouter()
     vi.clearAllMocks()
+    mockLoginWithProvider.mockResolvedValue()
   })
 
   const mountLogin = async (query = {}) => {
@@ -44,213 +47,116 @@ describe('Login view', () => {
   }
 
   describe('rendering', () => {
-    it('should render login form', async () => {
+    it('should render app title', async () => {
       const wrapper = await mountLogin()
-
       expect(wrapper.find('h1').text()).toBe('DrinkTracker')
-      expect(wrapper.find('input[type="email"]').exists()).toBe(true)
-      expect(wrapper.find('input[type="password"]').exists()).toBe(true)
-      expect(wrapper.find('button[type="submit"]').text()).toBe('Login')
     })
 
-    it('should render signup button', async () => {
+    it('should render Google sign-in button', async () => {
       const wrapper = await mountLogin()
-      const buttons = wrapper.findAll('button')
-
-      expect(buttons.some(b => b.text() === 'Sign Up')).toBe(true)
+      expect(wrapper.find('.google-button').exists()).toBe(true)
+      expect(wrapper.find('.google-button').text()).toContain('Continue with Google')
     })
 
-    it('should show redirect message when session expired', async () => {
+    it('should not render email/password form', async () => {
+      const wrapper = await mountLogin()
+      expect(wrapper.find('input[type="email"]').exists()).toBe(false)
+      expect(wrapper.find('input[type="password"]').exists()).toBe(false)
+    })
+
+    it('should show session expired warning when redirected', async () => {
       const wrapper = await mountLogin({
         error: 'session_expired',
-        message: 'Your session expired'
+        message: 'Your session expired',
       })
       await flushPromises()
 
       expect(wrapper.find('.warning-message').exists()).toBe(true)
       expect(wrapper.text()).toContain('Your session expired')
     })
-  })
 
-  describe('login', () => {
-    it('should call login with email and password', async () => {
-      const { login } = await import('../../services/auth')
-      login.mockResolvedValue()
-
+    it('should not show warning by default', async () => {
       const wrapper = await mountLogin()
-
-      await wrapper.find('input[type="email"]').setValue('test@example.com')
-      await wrapper.find('input[type="password"]').setValue('password123')
-      await wrapper.find('form').trigger('submit')
-      await flushPromises()
-
-      expect(login).toHaveBeenCalledWith('test@example.com', 'password123')
-    })
-
-    it('should display error on login failure', async () => {
-      const { login } = await import('../../services/auth')
-      login.mockRejectedValue(new Error('Invalid credentials'))
-
-      const wrapper = await mountLogin()
-
-      await wrapper.find('input[type="email"]').setValue('test@example.com')
-      await wrapper.find('input[type="password"]').setValue('wrong')
-      await wrapper.find('form').trigger('submit')
-      await flushPromises()
-
-      expect(wrapper.find('.error').text()).toBe('Invalid credentials')
-    })
-
-    it('should disable buttons while loading', async () => {
-      const { login } = await import('../../services/auth')
-      login.mockImplementation(() => new Promise(() => {})) // Never resolves
-
-      const wrapper = await mountLogin()
-
-      await wrapper.find('input[type="email"]').setValue('test@example.com')
-      await wrapper.find('input[type="password"]').setValue('password')
-      await wrapper.find('form').trigger('submit')
-
-      expect(wrapper.find('button[type="submit"]').attributes('disabled')).toBeDefined()
+      expect(wrapper.find('.warning-message').exists()).toBe(false)
     })
   })
 
-  describe('signup', () => {
-    it('should call signUp with email and password', async () => {
-      const { signUp } = await import('../../services/auth')
-      signUp.mockResolvedValue()
-
+  describe('Google login', () => {
+    it('should call loginWithProvider on button click', async () => {
       const wrapper = await mountLogin()
-
-      await wrapper.find('input[type="email"]').setValue('new@example.com')
-      await wrapper.find('input[type="password"]').setValue('newpassword')
-
-      const signUpButton = wrapper.findAll('button').find(b => b.text() === 'Sign Up')
-      await signUpButton.trigger('click')
+      await wrapper.find('.google-button').trigger('click')
       await flushPromises()
 
-      expect(signUp).toHaveBeenCalledWith('new@example.com', 'newpassword')
+      expect(mockLoginWithProvider).toHaveBeenCalled()
     })
 
-    it('should show success message after signup', async () => {
-      const { signUp } = await import('../../services/auth')
-      signUp.mockResolvedValue()
-
+    it('should navigate to home after successful login', async () => {
       const wrapper = await mountLogin()
-
-      await wrapper.find('input[type="email"]').setValue('new@example.com')
-      await wrapper.find('input[type="password"]').setValue('newpassword')
-
-      const signUpButton = wrapper.findAll('button').find(b => b.text() === 'Sign Up')
-      await signUpButton.trigger('click')
+      await wrapper.find('.google-button').trigger('click')
       await flushPromises()
 
-      expect(wrapper.find('.success').text()).toContain('check your email')
+      expect(router.currentRoute.value.path).toBe('/')
     })
 
-    it('should display error on signup failure', async () => {
-      const { signUp } = await import('../../services/auth')
-      signUp.mockRejectedValue(new Error('Email already exists'))
-
-      const wrapper = await mountLogin()
-
-      await wrapper.find('input[type="email"]').setValue('existing@example.com')
-      await wrapper.find('input[type="password"]').setValue('password')
-
-      const signUpButton = wrapper.findAll('button').find(b => b.text() === 'Sign Up')
-      await signUpButton.trigger('click')
+    it('should navigate to redirect path if provided', async () => {
+      const wrapper = await mountLogin({ redirect: '/dashboard' })
+      await wrapper.find('.google-button').trigger('click')
       await flushPromises()
 
-      expect(wrapper.find('.error').text()).toBe('Email already exists')
-    })
-  })
-
-  describe('form validation', () => {
-    it('should have required email input', async () => {
-      const wrapper = await mountLogin()
-
-      expect(wrapper.find('input[type="email"]').attributes('required')).toBeDefined()
+      expect(router.currentRoute.value.path).toBe('/dashboard')
     })
 
-    it('should have required password input', async () => {
-      const wrapper = await mountLogin()
+    it('should show error on login failure', async () => {
+      mockLoginWithProvider.mockRejectedValueOnce(new Error('Popup closed by user'))
 
-      expect(wrapper.find('input[type="password"]').attributes('required')).toBeDefined()
+      const wrapper = await mountLogin()
+      await wrapper.find('.google-button').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.find('.error').exists()).toBe(true)
+      expect(wrapper.find('.error').text()).toContain('Popup closed by user')
+    })
+
+    it('should show loading state during login', async () => {
+      mockLoginWithProvider.mockImplementation(() => new Promise(() => {}))
+
+      const wrapper = await mountLogin()
+      await wrapper.find('.google-button').trigger('click')
+
+      expect(wrapper.find('.google-button').attributes('disabled')).toBeDefined()
+      expect(wrapper.find('.google-button').text()).toContain('Loading')
+    })
+
+    it('should re-enable button after login failure', async () => {
+      mockLoginWithProvider.mockRejectedValueOnce(new Error('Failed'))
+
+      const wrapper = await mountLogin()
+      await wrapper.find('.google-button').trigger('click')
+      await flushPromises()
+
+      expect(wrapper.find('.google-button').attributes('disabled')).toBeUndefined()
     })
   })
 
   describe('accessibility', () => {
-    it('should have labels associated with form inputs', async () => {
-      const wrapper = await mountLogin()
-
-      // Check that labels exist and point to inputs
-      const emailLabel = wrapper.find('label[for="login-email"]')
-      const passwordLabel = wrapper.find('label[for="login-password"]')
-      const emailInput = wrapper.find('#login-email')
-      const passwordInput = wrapper.find('#login-password')
-
-      expect(emailLabel.exists()).toBe(true)
-      expect(passwordLabel.exists()).toBe(true)
-      expect(emailInput.exists()).toBe(true)
-      expect(passwordInput.exists()).toBe(true)
-    })
-
-    it('should have autocomplete attributes on inputs', async () => {
-      const wrapper = await mountLogin()
-
-      const emailInput = wrapper.find('input[type="email"]')
-      const passwordInput = wrapper.find('input[type="password"]')
-
-      expect(emailInput.attributes('autocomplete')).toBe('email')
-      expect(passwordInput.attributes('autocomplete')).toBe('current-password')
-    })
-
-    it('should have aria-required on required inputs', async () => {
-      const wrapper = await mountLogin()
-
-      const emailInput = wrapper.find('input[type="email"]')
-      const passwordInput = wrapper.find('input[type="password"]')
-
-      expect(emailInput.attributes('aria-required')).toBe('true')
-      expect(passwordInput.attributes('aria-required')).toBe('true')
-    })
-
     it('should have role="alert" on warning message', async () => {
       const wrapper = await mountLogin({
         error: 'session_expired',
-        message: 'Your session expired'
+        message: 'Session expired',
       })
       await flushPromises()
 
-      const warning = wrapper.find('.warning-message')
-      expect(warning.attributes('role')).toBe('alert')
+      expect(wrapper.find('.warning-message').attributes('role')).toBe('alert')
     })
 
     it('should have role="alert" on error message', async () => {
-      const { login } = await import('../../services/auth')
-      login.mockRejectedValue(new Error('Invalid credentials'))
+      mockLoginWithProvider.mockRejectedValueOnce(new Error('Failed'))
 
       const wrapper = await mountLogin()
-      await wrapper.find('input[type="email"]').setValue('test@example.com')
-      await wrapper.find('input[type="password"]').setValue('wrong')
-      await wrapper.find('form').trigger('submit')
+      await wrapper.find('.google-button').trigger('click')
       await flushPromises()
 
-      const error = wrapper.find('.error')
-      expect(error.attributes('role')).toBe('alert')
-    })
-
-    it('should have aria-busy on submit button when loading', async () => {
-      const { login } = await import('../../services/auth')
-      login.mockImplementation(() => new Promise(() => {})) // Never resolves
-
-      const wrapper = await mountLogin()
-      await wrapper.find('input[type="email"]').setValue('test@example.com')
-      await wrapper.find('input[type="password"]').setValue('password')
-      await wrapper.find('form').trigger('submit')
-
-      const submitButton = wrapper.find('button[type="submit"]')
-      expect(submitButton.attributes('aria-busy')).toBe('true')
+      expect(wrapper.find('.error').attributes('role')).toBe('alert')
     })
   })
 })

@@ -8,13 +8,15 @@ import MainTracker from '../MainTracker.vue'
 // Mock db service
 vi.mock('../../services/db', () => ({
   getTodayDrinkCount: vi.fn().mockResolvedValue(0),
-  addDrinkLog: vi.fn().mockResolvedValue([{ id: 1 }]),
+  addDrinkLog: vi.fn().mockResolvedValue({ id: 'uuid-1' }),
   getHistoricalCounts: vi.fn().mockResolvedValue({}),
   getUserTriggers: vi.fn().mockResolvedValue([]),
   getUserReflections: vi.fn().mockResolvedValue([]),
   addUserTrigger: vi.fn().mockResolvedValue(),
   addUserReflection: vi.fn().mockResolvedValue(),
   logMindfulnessSession: vi.fn().mockResolvedValue([]),
+  getWeeklyGoal: vi.fn().mockResolvedValue(null),
+  getWeeklyDrinkCount: vi.fn().mockResolvedValue(0),
 }))
 
 // Mock grok service
@@ -26,15 +28,6 @@ vi.mock('../../services/grok', () => ({
 vi.mock('../../services/authErrorHandler', () => ({
   isAuthError: vi.fn().mockReturnValue(false),
   handleAuthError: vi.fn(),
-}))
-
-// Mock supabase
-vi.mock('../../supabase', () => ({
-  supabase: {
-    auth: {
-      getUser: vi.fn().mockResolvedValue({ data: { user: { user_metadata: {} } } })
-    }
-  }
 }))
 
 // Mock ContextForm component
@@ -76,18 +69,22 @@ describe('MainTracker view', () => {
 
     // Reset mocks to default values
     dbService.getTodayDrinkCount.mockResolvedValue(0)
-    dbService.addDrinkLog.mockResolvedValue([{ id: 1 }])
+    dbService.addDrinkLog.mockResolvedValue({ id: 'uuid-1' })
     dbService.getHistoricalCounts.mockResolvedValue({})
     dbService.getUserTriggers.mockResolvedValue([])
     dbService.getUserReflections.mockResolvedValue([])
     dbService.logMindfulnessSession.mockResolvedValue([])
+    dbService.getWeeklyGoal.mockResolvedValue(null)
+    dbService.getWeeklyDrinkCount.mockResolvedValue(0)
 
-    // Suppress console logs
     vi.spyOn(console, 'log').mockImplementation(() => {})
     vi.spyOn(console, 'error').mockImplementation(() => {})
   })
 
   const mountTracker = async () => {
+    // Mark onboarding as done so the tracker renders
+    localStorage.setItem('onboarding_done', '1')
+
     await router.push('/')
     await router.isReady()
 
@@ -95,45 +92,39 @@ describe('MainTracker view', () => {
       global: {
         plugins: [router],
         provide: {
-          quickLogTrigger: { value: 0 }
-        }
+          quickLogTrigger: { value: 0 },
+        },
       },
     })
   }
 
   describe('rendering', () => {
-    it('should render tracker title', async () => {
+    it('should render drink count display', async () => {
       const wrapper = await mountTracker()
-
-      expect(wrapper.find('h1').text()).toBe('Daily Drink Tracker')
+      expect(wrapper.find('.drink-count').exists()).toBe(true)
     })
 
     it('should display current drink count', async () => {
       dbService.getTodayDrinkCount.mockResolvedValue(3)
-
       const wrapper = await mountTracker()
       await flushPromises()
-
       expect(wrapper.text()).toContain('Current drinks today: 3')
     })
 
     it('should render Quick Log button', async () => {
       const wrapper = await mountTracker()
-
       expect(wrapper.find('.quick-log-btn').exists()).toBe(true)
       expect(wrapper.find('.quick-log-btn').text()).toContain('Quick Log')
     })
 
     it('should render With Details button', async () => {
       const wrapper = await mountTracker()
-
       expect(wrapper.find('.details-btn').exists()).toBe(true)
       expect(wrapper.find('.details-btn').text()).toContain('With Details')
     })
 
     it('should render support section toggle', async () => {
       const wrapper = await mountTracker()
-
       expect(wrapper.find('.support-toggle-btn').exists()).toBe(true)
       expect(wrapper.find('.support-toggle-btn').text()).toContain('Need Support?')
     })
@@ -143,30 +134,22 @@ describe('MainTracker view', () => {
     it('should show context form when With Details is clicked', async () => {
       const wrapper = await mountTracker()
       await flushPromises()
-
-      // Click With Details to show context form
       await wrapper.find('.details-btn').trigger('click')
       await flushPromises()
-
-      // Context form should be visible (stubbed)
       expect(wrapper.find('.context-form-stub').exists()).toBe(true)
     })
 
     it('should call addDrinkLog when Quick Log is clicked', async () => {
       const wrapper = await mountTracker()
       await flushPromises()
-
-      // Click Quick Log
       await wrapper.find('.quick-log-btn').trigger('click')
       await flushPromises()
-
       expect(dbService.addDrinkLog).toHaveBeenCalledWith({})
     })
 
     it('should load today drink count on mount', async () => {
       await mountTracker()
       await flushPromises()
-
       expect(dbService.getTodayDrinkCount).toHaveBeenCalled()
     })
   })
@@ -193,28 +176,13 @@ describe('MainTracker view', () => {
 
       expect(wrapper.find('.support-cards').exists()).toBe(true)
     })
-
-    it('should show streak badge if streak exists', async () => {
-      // Set streak in localStorage
-      localStorage.setItem('mindfulnessStreak', '5')
-
-      const wrapper = await mountTracker()
-      await flushPromises()
-
-      // The streak badge should be visible in the support toggle button
-      const button = wrapper.find('.support-toggle-btn')
-      expect(button.exists()).toBe(true)
-    })
   })
 
   describe('progress messages', () => {
     it('should show encouraging message for 0 drinks', async () => {
       dbService.getTodayDrinkCount.mockResolvedValue(0)
-
       const wrapper = await mountTracker()
       await flushPromises()
-
-      // Check for progress message element
       expect(wrapper.text()).toMatch(/drink|progress|great|keep/i)
     })
   })
@@ -222,24 +190,20 @@ describe('MainTracker view', () => {
   describe('error handling', () => {
     it('should handle getTodayDrinkCount error gracefully', async () => {
       dbService.getTodayDrinkCount.mockRejectedValue(new Error('Database error'))
-
       const wrapper = await mountTracker()
       await flushPromises()
-
-      // Should not crash, still renders
-      expect(wrapper.find('h1').exists()).toBe(true)
+      // Should still render the main container without crashing
+      expect(wrapper.find('.main-container').exists()).toBe(true)
     })
 
     it('should handle addDrinkLog error gracefully', async () => {
       dbService.addDrinkLog.mockRejectedValue(new Error('Save failed'))
-
       const wrapper = await mountTracker()
       await flushPromises()
 
       await wrapper.find('.quick-log-btn').trigger('click')
       await flushPromises()
 
-      // Should show error message
       expect(wrapper.find('.error').exists() || wrapper.text()).toBeTruthy()
     })
   })
@@ -248,28 +212,22 @@ describe('MainTracker view', () => {
     it('should have proper aria-expanded on support toggle button', async () => {
       const wrapper = await mountTracker()
       await flushPromises()
-
       const toggle = wrapper.find('.support-toggle-btn')
-      // Initially collapsed
       expect(toggle.attributes('aria-expanded')).toBe('false')
     })
 
     it('should update aria-expanded when support tools toggled', async () => {
       const wrapper = await mountTracker()
       await flushPromises()
-
       const toggle = wrapper.find('.support-toggle-btn')
       await toggle.trigger('click')
       await flushPromises()
-
-      // Now expanded
       expect(toggle.attributes('aria-expanded')).toBe('true')
     })
 
     it('should have aria-controls on support toggle button', async () => {
       const wrapper = await mountTracker()
       await flushPromises()
-
       const toggle = wrapper.find('.support-toggle-btn')
       expect(toggle.attributes('aria-controls')).toBe('support-content')
     })
@@ -277,11 +235,8 @@ describe('MainTracker view', () => {
     it('should have role="region" on support content when visible', async () => {
       const wrapper = await mountTracker()
       await flushPromises()
-
-      // Open support tools
       await wrapper.find('.support-toggle-btn').trigger('click')
       await flushPromises()
-
       const supportContent = wrapper.find('#support-content')
       expect(supportContent.exists()).toBe(true)
       expect(supportContent.attributes('role')).toBe('region')
@@ -290,15 +245,10 @@ describe('MainTracker view', () => {
     it('should have aria-pressed on support card buttons', async () => {
       const wrapper = await mountTracker()
       await flushPromises()
-
-      // Open support tools
       await wrapper.find('.support-toggle-btn').trigger('click')
       await flushPromises()
-
       const cards = wrapper.findAll('.support-card')
       expect(cards.length).toBeGreaterThan(0)
-
-      // All cards should have aria-pressed="false" initially
       cards.forEach(card => {
         expect(card.attributes('aria-pressed')).toBe('false')
       })

@@ -382,9 +382,7 @@ function renderChart(counts) {
     validCounts = Object.entries(counts)
       .sort(([dateA], [dateB]) => new Date(dateA) - new Date(dateB))
       .map(([date, count]) => ({ date, count }))
-    console.log('Converted object to array:', validCounts) // Debug: Verify conversion
   }
-  console.log('Valid counts for chart:', validCounts) // Debug: Verify data
 
   // Aggregate drink counts by date from timestamps or objects
   const countByDate = {}
@@ -402,7 +400,6 @@ function renderChart(counts) {
       countByDate[date] = (countByDate[date] || 0) + count
     }
   })
-  console.log('Aggregated counts by date:', countByDate) // Debug: Verify aggregation
 
   // Prepare data for the bar chart (last 30 days)
   const today = new Date()
@@ -412,12 +409,6 @@ function renderChart(counts) {
     return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
   })
   const data = labels.map(label => countByDate[label] || 0) // Use aggregated counts or zero
-
-  // Detailed debug for empty or zero data
-  console.log('Chart data:', data) // Debug: Verify final data array
-  if (data.every(count => count === 0)) {
-    console.warn('No non-zero drink counts found, chart will show zeros. Check historicalCounts data.')
-  }
 
   // Create the bar chart using Chart.js with visible bars
   chartInstance.value = new Chart(chartRef.value, {

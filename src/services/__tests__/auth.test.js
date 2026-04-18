@@ -1,78 +1,93 @@
-// Tests for authentication service
+// Tests for authentication service (Firebase Auth)
 import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { login, signUp, loginWithProvider, logout } from '../auth.js'
-import { mockSupabase, resetMocks } from '../../test/setup.js'
+
+// Use vi.hoisted to declare mocks before vi.mock hoisting
+const {
+  mockLoginWithGoogle,
+  mockLogout,
+  mockOnAuthStateChanged,
+  mockAuthObj,
+  mockCurrentUser,
+} = vi.hoisted(() => {
+  const mockCurrentUser = { uid: 'test-uid', email: 'test@example.com' }
+  return {
+    mockLoginWithGoogle: vi.fn(),
+    mockLogout: vi.fn(),
+    mockOnAuthStateChanged: vi.fn(() => vi.fn()),
+    mockAuthObj: { currentUser: mockCurrentUser },
+    mockCurrentUser,
+  }
+})
+
+vi.mock('../../firebase', () => ({
+  loginWithGoogle: mockLoginWithGoogle,
+  logout: mockLogout,
+  auth: mockAuthObj,
+}))
+
+vi.mock('firebase/auth', () => ({
+  onAuthStateChanged: mockOnAuthStateChanged,
+}))
+
+import { loginWithProvider, logout, onAuthChange, getCurrentUser } from '../auth.js'
 
 describe('auth service', () => {
   beforeEach(() => {
-    resetMocks()
-  })
-
-  describe('login', () => {
-    it('should call signInWithPassword with email and password', async () => {
-      await login('test@example.com', 'password123')
-
-      expect(mockSupabase.auth.signInWithPassword).toHaveBeenCalledWith({
-        email: 'test@example.com',
-        password: 'password123',
-      })
-    })
-
-    it('should throw error on auth failure', async () => {
-      const authError = new Error('Invalid credentials')
-      mockSupabase.auth.signInWithPassword.mockResolvedValueOnce({ error: authError })
-
-      await expect(login('test@example.com', 'wrong')).rejects.toThrow('Invalid credentials')
-    })
-  })
-
-  describe('signUp', () => {
-    it('should call signUp with email and password', async () => {
-      await signUp('new@example.com', 'newpassword')
-
-      expect(mockSupabase.auth.signUp).toHaveBeenCalledWith({
-        email: 'new@example.com',
-        password: 'newpassword',
-      })
-    })
-
-    it('should throw error on signup failure', async () => {
-      const signupError = new Error('Email already exists')
-      mockSupabase.auth.signUp.mockResolvedValueOnce({ error: signupError })
-
-      await expect(signUp('existing@example.com', 'password')).rejects.toThrow('Email already exists')
-    })
+    vi.clearAllMocks()
+    mockLoginWithGoogle.mockResolvedValue()
+    mockLogout.mockResolvedValue()
+    mockAuthObj.currentUser = mockCurrentUser
   })
 
   describe('loginWithProvider', () => {
-    it('should call signInWithOAuth with provider', async () => {
-      await loginWithProvider('google')
-
-      expect(mockSupabase.auth.signInWithOAuth).toHaveBeenCalledWith({
-        provider: 'google',
-      })
+    it('should call Firebase loginWithGoogle', async () => {
+      await loginWithProvider()
+      expect(mockLoginWithGoogle).toHaveBeenCalled()
     })
 
-    it('should throw error on OAuth failure', async () => {
-      const oauthError = new Error('OAuth failed')
-      mockSupabase.auth.signInWithOAuth.mockResolvedValueOnce({ error: oauthError })
-
-      await expect(loginWithProvider('google')).rejects.toThrow('OAuth failed')
+    it('should propagate errors from Firebase', async () => {
+      mockLoginWithGoogle.mockRejectedValueOnce(new Error('Popup closed'))
+      await expect(loginWithProvider()).rejects.toThrow('Popup closed')
     })
   })
 
   describe('logout', () => {
-    it('should call signOut', async () => {
+    it('should call Firebase logout', async () => {
       await logout()
-
-      expect(mockSupabase.auth.signOut).toHaveBeenCalled()
+      expect(mockLogout).toHaveBeenCalled()
     })
 
-    it('should throw error on logout failure', async () => {
-      const logoutError = { message: 'Network error' }
-      mockSupabase.auth.signOut.mockResolvedValueOnce({ error: logoutError })
+    it('should propagate errors from Firebase', async () => {
+      mockLogout.mockRejectedValueOnce(new Error('Network error'))
+      await expect(logout()).rejects.toThrow('Network error')
+    })
+  })
 
-      await expect(logout()).rejects.toThrow('Failed to log out. Please try again.')
+  describe('onAuthChange', () => {
+    it('should subscribe to auth state changes', () => {
+      const callback = vi.fn()
+      onAuthChange(callback)
+      expect(mockOnAuthStateChanged).toHaveBeenCalledWith(mockAuthObj, callback)
+    })
+
+    it('should return unsubscribe function', () => {
+      const unsub = vi.fn()
+      mockOnAuthStateChanged.mockReturnValueOnce(unsub)
+      const result = onAuthChange(vi.fn())
+      expect(result).toBe(unsub)
+    })
+  })
+
+  describe('getCurrentUser', () => {
+    it('should return auth.currentUser', () => {
+      const user = getCurrentUser()
+      expect(user).toBe(mockCurrentUser)
+    })
+
+    it('should return null when no user', () => {
+      mockAuthObj.currentUser = null
+      const user = getCurrentUser()
+      expect(user).toBeNull()
     })
   })
 })

@@ -207,8 +207,8 @@ import Onboarding from '../components/Onboarding.vue'
 // Inject quick log trigger from App.vue (for notification-based logging)
 const quickLogTrigger = inject('quickLogTrigger', ref(0))
 
-// Watch for quick log triggers from notifications
-watch(quickLogTrigger, async () => {
+// Watch for quick log triggers from notifications (use getter to handle inject edge cases)
+watch(() => quickLogTrigger.value, async () => {
   // Refresh data when a drink was logged via notification
   drinkCount.value = await getTodayDrinkCount()
   await fetchWeeklyDrinkCount()

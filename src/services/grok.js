@@ -2,7 +2,6 @@
 // Original function to fetch Grok advice, with added debugging logs for maintainability
 export async function getGrokAdvice(userData) {
   try {
-    console.log('Fetching Grok advice with userData:', JSON.stringify(userData)); // Debug: Log input data
     const response = await fetch('/.netlify/functions/grok-proxy', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -12,7 +11,6 @@ export async function getGrokAdvice(userData) {
       throw new Error(`HTTP error: ${response.status}`) // Original error handling intact
     }
     const data = await response.json()
-    console.log('Grok response data:', JSON.stringify(data)); // Debug: Log full response for tracing
     if (data.error) {
       throw new Error(data.error)
     }

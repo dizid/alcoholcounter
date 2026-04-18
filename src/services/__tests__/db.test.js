@@ -1,312 +1,383 @@
-// Tests for database service
+// Tests for database service (API-based with Firebase token auth)
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-// Use vi.hoisted to ensure the mock is available when vi.mock runs
-const { mockSupabase, mockUser } = vi.hoisted(() => {
-  const mockUser = {
-    id: 'test-user-id',
-    email: 'test@example.com',
-  }
-
-  const mockSupabase = {
-    auth: {
-      getUser: vi.fn().mockResolvedValue({ data: { user: mockUser }, error: null }),
-    },
-    from: vi.fn(),
-  }
-
-  return { mockSupabase, mockUser }
-})
-
-// Mock the supabase module
-vi.mock('../../supabase', () => ({
-  supabase: mockSupabase,
+// Use vi.hoisted to declare mock before vi.mock hoisting
+const { mockGetIdToken } = vi.hoisted(() => ({
+  mockGetIdToken: vi.fn().mockResolvedValue('mock-firebase-token'),
 }))
 
-// Import after mocking
+vi.mock('../../firebase', () => ({
+  getIdToken: mockGetIdToken,
+}))
+
 import {
   addDrinkLog,
   getTodayDrinkCount,
   getHistoricalCounts,
   getContextFrequencies,
-  getAllDrinkLogs,
+  getMoodCorrelations,
+  getRecentDrinkLogs,
+  updateDrinkLog,
+  deleteDrinkLog,
   addUserTrigger,
   getUserTriggers,
   addUserReflection,
   getUserReflections,
   logMindfulnessSession,
+  getWeeklyGoal,
+  setWeeklyGoal,
+  getWeeklyDrinkCount,
 } from '../db.js'
 
 describe('db service', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    // Reset getUser to return mockUser by default
-    mockSupabase.auth.getUser.mockResolvedValue({ data: { user: mockUser }, error: null })
+    mockGetIdToken.mockResolvedValue('mock-firebase-token')
+    global.fetch = vi.fn()
   })
 
+  // Helper to mock successful API response
+  const mockApi = (data) => {
+    global.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(data),
+    })
+  }
+
+  // Helper to mock failed API response
+  const mockApiError = (status = 500) => {
+    global.fetch.mockResolvedValueOnce({ ok: false, status })
+  }
+
+  // Helper to verify auth header is sent
+  const expectAuthHeader = () => {
+    const callArgs = global.fetch.mock.calls[0]
+    expect(callArgs[1].headers.Authorization).toBe('Bearer mock-firebase-token')
+    expect(callArgs[1].headers['Content-Type']).toBe('application/json')
+  }
+
   describe('addDrinkLog', () => {
-    it('should add drink log with user_id', async () => {
-      const mockData = [{ id: 1, user_id: mockUser.id, mood: 'happy' }]
-      mockSupabase.from.mockReturnValue({
-        insert: vi.fn().mockReturnValue({
-          select: vi.fn().mockResolvedValue({ data: mockData, error: null }),
-        }),
-      })
+    it('should POST to api-drinks with context', async () => {
+      const mockRow = { id: 'uuid-1', mood: 'happy' }
+      mockApi(mockRow)
 
-      const result = await addDrinkLog({ mood: 'happy' })
+      const result = await addDrinkLog({ mood: 'happy', location: 'Home' })
 
-      expect(mockSupabase.auth.getUser).toHaveBeenCalled()
-      expect(mockSupabase.from).toHaveBeenCalledWith('drink_logs')
-      expect(result).toEqual(mockData)
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/.netlify/functions/api-drinks',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ mood: 'happy', location: 'Home' }),
+        })
+      )
+      expectAuthHeader()
+      expect(result).toEqual(mockRow)
     })
 
-    it('should throw error if user not authenticated', async () => {
-      mockSupabase.auth.getUser.mockResolvedValueOnce({ data: { user: null }, error: null })
-
-      await expect(addDrinkLog({ mood: 'happy' })).rejects.toThrow('User not authenticated')
+    it('should throw on API error', async () => {
+      mockApiError(500)
+      await expect(addDrinkLog({})).rejects.toThrow('API error 500')
     })
 
-    it('should throw error on database error', async () => {
-      const dbError = new Error('Database error')
-      mockSupabase.from.mockReturnValue({
-        insert: vi.fn().mockReturnValue({
-          select: vi.fn().mockResolvedValue({ data: null, error: dbError }),
-        }),
-      })
-
-      await expect(addDrinkLog({ mood: 'sad' })).rejects.toThrow('Database error')
+    it('should throw when not authenticated', async () => {
+      mockGetIdToken.mockRejectedValueOnce(new Error('Not authenticated'))
+      await expect(addDrinkLog({})).rejects.toThrow('Not authenticated')
     })
   })
 
   describe('getTodayDrinkCount', () => {
-    it('should return count of today drinks', async () => {
-      const mockData = [{ id: 1 }, { id: 2 }, { id: 3 }]
-      mockSupabase.from.mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          gte: vi.fn().mockReturnValue({
-            lte: vi.fn().mockResolvedValue({ data: mockData, error: null }),
-          }),
-        }),
-      })
+    it('should GET api-stats with type=today and return count', async () => {
+      mockApi({ count: 5 })
 
       const result = await getTodayDrinkCount()
 
-      expect(result).toBe(3)
-      expect(mockSupabase.from).toHaveBeenCalledWith('drink_logs')
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/.netlify/functions/api-stats?type=today',
+        expect.objectContaining({ headers: expect.any(Object) })
+      )
+      expect(result).toBe(5)
     })
 
-    it('should throw error on database failure', async () => {
-      const dbError = new Error('Connection failed')
-      mockSupabase.from.mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          gte: vi.fn().mockReturnValue({
-            lte: vi.fn().mockResolvedValue({ data: null, error: dbError }),
-          }),
-        }),
-      })
+    it('should return 0 when count is 0', async () => {
+      mockApi({ count: 0 })
+      const result = await getTodayDrinkCount()
+      expect(result).toBe(0)
+    })
 
-      await expect(getTodayDrinkCount()).rejects.toThrow('Connection failed')
+    it('should throw on API error', async () => {
+      mockApiError(401)
+      await expect(getTodayDrinkCount()).rejects.toThrow('API error 401')
     })
   })
 
   describe('getHistoricalCounts', () => {
-    it('should return counts by date', async () => {
-      const mockData = [
-        { created_at: '2024-01-15T10:00:00Z' },
-        { created_at: '2024-01-15T14:00:00Z' },
-        { created_at: '2024-01-16T10:00:00Z' },
-      ]
-      mockSupabase.from.mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          gte: vi.fn().mockReturnValue({
-            lte: vi.fn().mockResolvedValue({ data: mockData, error: null }),
-          }),
-        }),
-      })
+    it('should GET api-stats with type=historical and default 30 days', async () => {
+      const mockData = { 'Jan 15': 2, 'Jan 16': 1 }
+      mockApi(mockData)
 
-      const result = await getHistoricalCounts(30)
+      const result = await getHistoricalCounts()
 
-      expect(typeof result).toBe('object')
-      expect(mockSupabase.from).toHaveBeenCalledWith('drink_logs')
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/.netlify/functions/api-stats?type=historical&days=30',
+        expect.any(Object)
+      )
+      expect(result).toEqual(mockData)
+    })
+
+    it('should accept custom days parameter', async () => {
+      mockApi({})
+      await getHistoricalCounts(7)
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/.netlify/functions/api-stats?type=historical&days=7',
+        expect.any(Object)
+      )
     })
   })
 
   describe('getContextFrequencies', () => {
-    it('should return frequency counts for each context field', async () => {
-      const mockData = [
-        { location: 'home', company: 'alone', drink_type: 'beer', mood: 'relaxed' },
-        { location: 'home', company: 'friends', drink_type: 'wine', mood: 'happy' },
-        { location: 'bar', company: 'friends', drink_type: 'beer', mood: 'happy' },
-      ]
-      mockSupabase.from.mockReturnValue({
-        select: vi.fn().mockResolvedValue({ data: mockData, error: null }),
-      })
+    it('should GET api-stats with type=context', async () => {
+      const mockData = {
+        location: { Home: 5, Bar: 3 },
+        company: { Alone: 4 },
+        drink_type: { beer: 6 },
+        mood: { happy: 3 },
+      }
+      mockApi(mockData)
 
       const result = await getContextFrequencies()
 
-      expect(result.location.home).toBe(2)
-      expect(result.location.bar).toBe(1)
-      expect(result.company.friends).toBe(2)
-      expect(result.drink_type.beer).toBe(2)
-      expect(result.mood.happy).toBe(2)
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/.netlify/functions/api-stats?type=context',
+        expect.any(Object)
+      )
+      expect(result.location.Home).toBe(5)
+      expect(result.mood.happy).toBe(3)
     })
   })
 
-  describe('getAllDrinkLogs', () => {
-    it('should return all drink logs ordered by date', async () => {
+  describe('getMoodCorrelations', () => {
+    it('should GET api-stats with type=mood', async () => {
+      const mockData = {
+        happy: { count: 5, percentage: 50 },
+        stressed: { count: 3, percentage: 30 },
+      }
+      mockApi(mockData)
+
+      const result = await getMoodCorrelations()
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/.netlify/functions/api-stats?type=mood',
+        expect.any(Object)
+      )
+      expect(result.happy.percentage).toBe(50)
+    })
+  })
+
+  describe('getRecentDrinkLogs', () => {
+    it('should GET api-drinks with limit and offset', async () => {
       const mockData = [
-        { id: 2, created_at: '2024-01-16T10:00:00Z' },
-        { id: 1, created_at: '2024-01-15T10:00:00Z' },
+        { id: '1', created_at: '2024-01-15T10:00:00Z', mood: 'happy' },
+        { id: '2', created_at: '2024-01-14T10:00:00Z', mood: 'neutral' },
       ]
-      const orderMock = vi.fn().mockResolvedValue({ data: mockData, error: null })
-      mockSupabase.from.mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          order: orderMock,
-        }),
-      })
+      mockApi(mockData)
 
-      const result = await getAllDrinkLogs()
+      const result = await getRecentDrinkLogs(10, 5)
 
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/.netlify/functions/api-drinks?limit=10&offset=5',
+        expect.any(Object)
+      )
       expect(result).toEqual(mockData)
-      expect(orderMock).toHaveBeenCalledWith('created_at', { ascending: false })
+    })
+
+    it('should use default limit and offset', async () => {
+      mockApi([])
+      await getRecentDrinkLogs()
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/.netlify/functions/api-drinks?limit=20&offset=0',
+        expect.any(Object)
+      )
+    })
+  })
+
+  describe('updateDrinkLog', () => {
+    it('should PUT to api-drinks with id and context', async () => {
+      mockApi({ ok: true })
+
+      await updateDrinkLog('uuid-1', { mood: 'neutral' })
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/.netlify/functions/api-drinks',
+        expect.objectContaining({
+          method: 'PUT',
+          body: JSON.stringify({ id: 'uuid-1', mood: 'neutral' }),
+        })
+      )
+    })
+  })
+
+  describe('deleteDrinkLog', () => {
+    it('should DELETE from api-drinks with id', async () => {
+      mockApi({ ok: true })
+
+      await deleteDrinkLog('uuid-1')
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/.netlify/functions/api-drinks',
+        expect.objectContaining({
+          method: 'DELETE',
+          body: JSON.stringify({ id: 'uuid-1' }),
+        })
+      )
     })
   })
 
   describe('addUserTrigger', () => {
-    it('should add trigger with user_id', async () => {
-      const insertMock = vi.fn().mockResolvedValue({ error: null })
-      mockSupabase.from.mockReturnValue({
-        insert: insertMock,
-      })
+    it('should POST to api-triggers with text and coping strategy', async () => {
+      mockApi({ ok: true })
 
       await addUserTrigger('stress', 'take a walk')
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('user_triggers')
-      expect(insertMock).toHaveBeenCalledWith([{
-        user_id: mockUser.id,
-        trigger_text: 'stress',
-        coping_strategy: 'take a walk',
-      }])
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/.netlify/functions/api-triggers',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ trigger_text: 'stress', coping_strategy: 'take a walk' }),
+        })
+      )
     })
 
     it('should handle null coping strategy', async () => {
-      const insertMock = vi.fn().mockResolvedValue({ error: null })
-      mockSupabase.from.mockReturnValue({
-        insert: insertMock,
-      })
+      mockApi({ ok: true })
 
       await addUserTrigger('boredom')
 
-      expect(insertMock).toHaveBeenCalledWith([{
-        user_id: mockUser.id,
-        trigger_text: 'boredom',
-        coping_strategy: null,
-      }])
-    })
-
-    it('should throw if not authenticated', async () => {
-      mockSupabase.auth.getUser.mockResolvedValueOnce({ data: { user: null }, error: null })
-
-      await expect(addUserTrigger('stress')).rejects.toThrow('User not authenticated')
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/.netlify/functions/api-triggers',
+        expect.objectContaining({
+          body: JSON.stringify({ trigger_text: 'boredom', coping_strategy: null }),
+        })
+      )
     })
   })
 
   describe('getUserTriggers', () => {
-    it('should return user triggers', async () => {
+    it('should GET api-triggers', async () => {
       const mockData = [
-        { id: 1, trigger_text: 'stress', coping_strategy: 'breathe', created_at: '2024-01-15' },
+        { id: '1', trigger_text: 'stress', coping_strategy: 'breathe' },
       ]
-      const eqMock = vi.fn().mockReturnValue({
-        order: vi.fn().mockResolvedValue({ data: mockData, error: null }),
-      })
-      mockSupabase.from.mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: eqMock,
-        }),
-      })
+      mockApi(mockData)
 
       const result = await getUserTriggers()
 
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/.netlify/functions/api-triggers',
+        expect.any(Object)
+      )
       expect(result).toEqual(mockData)
-      expect(eqMock).toHaveBeenCalledWith('user_id', mockUser.id)
-    })
-
-    it('should return empty array when no data', async () => {
-      mockSupabase.from.mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            order: vi.fn().mockResolvedValue({ data: null, error: null }),
-          }),
-        }),
-      })
-
-      const result = await getUserTriggers()
-
-      expect(result).toEqual([])
     })
   })
 
   describe('addUserReflection', () => {
-    it('should add reflection with user_id and exercise type', async () => {
-      const insertMock = vi.fn().mockResolvedValue({ error: null })
-      mockSupabase.from.mockReturnValue({
-        insert: insertMock,
-      })
+    it('should POST to api-reflections', async () => {
+      mockApi({ ok: true })
 
       await addUserReflection('I felt calm today', 'breathing')
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('user_reflections')
-      expect(insertMock).toHaveBeenCalledWith([{
-        user_id: mockUser.id,
-        reflection_text: 'I felt calm today',
-        exercise_type: 'breathing',
-      }])
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/.netlify/functions/api-reflections',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ reflection_text: 'I felt calm today', exercise_type: 'breathing' }),
+        })
+      )
     })
   })
 
   describe('getUserReflections', () => {
-    it('should return user reflections', async () => {
+    it('should GET api-reflections', async () => {
       const mockData = [
-        { id: 1, reflection_text: 'Good day', exercise_type: 'meditation', created_at: '2024-01-15' },
+        { id: '1', reflection_text: 'Good day', exercise_type: 'meditation' },
       ]
-      mockSupabase.from.mockReturnValue({
-        select: vi.fn().mockReturnValue({
-          eq: vi.fn().mockReturnValue({
-            order: vi.fn().mockResolvedValue({ data: mockData, error: null }),
-          }),
-        }),
-      })
+      mockApi(mockData)
 
       const result = await getUserReflections()
 
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/.netlify/functions/api-reflections',
+        expect.any(Object)
+      )
       expect(result).toEqual(mockData)
     })
   })
 
   describe('logMindfulnessSession', () => {
-    it('should log session and return all sessions', async () => {
+    it('should POST to api-mindfulness', async () => {
       const mockSessions = [
         { session_date: '2024-01-16' },
         { session_date: '2024-01-15' },
       ]
-
-      // First call for insert, second call for select
-      mockSupabase.from
-        .mockReturnValueOnce({
-          insert: vi.fn().mockResolvedValue({ error: null }),
-        })
-        .mockReturnValueOnce({
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              order: vi.fn().mockResolvedValue({ data: mockSessions, error: null }),
-            }),
-          }),
-        })
+      mockApi(mockSessions)
 
       const result = await logMindfulnessSession()
 
-      expect(mockSupabase.from).toHaveBeenCalledWith('user_mindfulness_sessions')
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/.netlify/functions/api-mindfulness',
+        expect.objectContaining({ method: 'POST' })
+      )
       expect(result).toEqual(mockSessions)
+    })
+  })
+
+  describe('getWeeklyGoal', () => {
+    it('should GET api-goals and return weekly_limit', async () => {
+      mockApi({ weekly_limit: 10 })
+
+      const result = await getWeeklyGoal()
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/.netlify/functions/api-goals',
+        expect.any(Object)
+      )
+      expect(result).toBe(10)
+    })
+
+    it('should return null when no goal set', async () => {
+      mockApi({ weekly_limit: null })
+      const result = await getWeeklyGoal()
+      expect(result).toBeNull()
+    })
+  })
+
+  describe('setWeeklyGoal', () => {
+    it('should PUT to api-goals with weekly_limit', async () => {
+      mockApi({ ok: true })
+
+      await setWeeklyGoal(14)
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/.netlify/functions/api-goals',
+        expect.objectContaining({
+          method: 'PUT',
+          body: JSON.stringify({ weekly_limit: 14 }),
+        })
+      )
+    })
+  })
+
+  describe('getWeeklyDrinkCount', () => {
+    it('should GET api-stats with type=weekly and return count', async () => {
+      mockApi({ count: 7 })
+
+      const result = await getWeeklyDrinkCount()
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        '/.netlify/functions/api-stats?type=weekly',
+        expect.any(Object)
+      )
+      expect(result).toBe(7)
     })
   })
 })

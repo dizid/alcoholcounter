@@ -34,6 +34,8 @@ vi.mock('../../services/db', () => ({
   getRecentDrinkLogs: vi.fn().mockResolvedValue([]),
   deleteDrinkLog: vi.fn().mockResolvedValue(),
   updateDrinkLog: vi.fn().mockResolvedValue(),
+  getWeeklyGoal: vi.fn().mockResolvedValue(null),
+  getWeeklyDrinkCount: vi.fn().mockResolvedValue(0),
 }))
 
 // Mock grok service
@@ -50,15 +52,6 @@ vi.mock('../../services/auth', () => ({
 vi.mock('../../services/authErrorHandler', () => ({
   isAuthError: vi.fn().mockReturnValue(false),
   handleAuthError: vi.fn(),
-}))
-
-// Mock supabase
-vi.mock('../../supabase', () => ({
-  supabase: {
-    auth: {
-      getUser: vi.fn().mockResolvedValue({ data: { user: { user_metadata: {} } } })
-    }
-  }
 }))
 
 // Mock Achievements component
@@ -100,10 +93,11 @@ describe('Dashboard view', () => {
     dbService.getUserReflections.mockResolvedValue([])
     dbService.getMoodCorrelations.mockResolvedValue({})
     dbService.getRecentDrinkLogs.mockResolvedValue([])
+    dbService.getWeeklyGoal.mockResolvedValue(null)
+    dbService.getWeeklyDrinkCount.mockResolvedValue(0)
     grokService.getGrokAdvice.mockResolvedValue('Test advice')
     authService.logout.mockResolvedValue()
 
-    // Suppress console logs
     vi.spyOn(console, 'log').mockImplementation(() => {})
     vi.spyOn(console, 'warn').mockImplementation(() => {})
     vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -126,79 +120,71 @@ describe('Dashboard view', () => {
   describe('rendering', () => {
     it('should render dashboard title', async () => {
       const wrapper = await mountDashboard()
-
       expect(wrapper.find('h1').text()).toBe('Progress Dashboard')
     })
 
     it('should render chart canvas', async () => {
       const wrapper = await mountDashboard()
-
       expect(wrapper.find('canvas#barChart').exists()).toBe(true)
     })
 
     it('should render AI advice section', async () => {
       const wrapper = await mountDashboard()
-
       expect(wrapper.find('h2').text()).toBe('Personalized Insights')
     })
 
     it('should render navigation button', async () => {
       const wrapper = await mountDashboard()
       const buttons = wrapper.findAll('button')
-
       expect(buttons.some(b => b.text() === 'Back to Tracker')).toBe(true)
     })
   })
 
   describe('data loading', () => {
     it('should show loading spinner while fetching data', async () => {
-      grokService.getGrokAdvice.mockImplementation(() => new Promise(() => {})) // Never resolves
-
+      grokService.getGrokAdvice.mockImplementation(() => new Promise(() => {}))
       const wrapper = await mountDashboard()
-
       expect(wrapper.find('.pulse-loader-stub').exists()).toBe(true)
     })
 
     it('should display AI advice after loading', async () => {
       grokService.getGrokAdvice.mockResolvedValue('Drink more water!')
-
       const wrapper = await mountDashboard()
       await flushPromises()
-
       expect(wrapper.find('.ai-advice-content').exists()).toBe(true)
     })
 
     it('should fetch historical counts on mount', async () => {
       await mountDashboard()
       await flushPromises()
-
       expect(dbService.getHistoricalCounts).toHaveBeenCalledWith(30)
     })
 
     it('should fetch user triggers on mount', async () => {
       await mountDashboard()
       await flushPromises()
-
       expect(dbService.getUserTriggers).toHaveBeenCalled()
+    })
+
+    it('should fetch weekly goal on mount', async () => {
+      await mountDashboard()
+      await flushPromises()
+      expect(dbService.getWeeklyGoal).toHaveBeenCalled()
     })
   })
 
   describe('error handling', () => {
     it('should display error message on API failure', async () => {
       grokService.getGrokAdvice.mockRejectedValue(new Error('API error'))
-
       const wrapper = await mountDashboard()
       await flushPromises()
-
       expect(wrapper.find('.error').text()).toContain('API error')
     })
 
     it('should show retry button on error', async () => {
       grokService.getGrokAdvice.mockRejectedValue(new Error('Network error'))
-
       const wrapper = await mountDashboard()
       await flushPromises()
-
       expect(wrapper.findAll('button').some(b => b.text() === 'Retry')).toBe(true)
     })
 
@@ -232,17 +218,9 @@ describe('Dashboard view', () => {
   })
 
   describe('cleanup', () => {
-    it('should destroy chart instance on unmount', async () => {
+    it('should not throw on unmount', async () => {
       const wrapper = await mountDashboard()
       await flushPromises()
-
-      // Get the chart instance's destroy mock
-      // The chart is created during loadData -> renderChart
-      const chartDestroyMock = vi.fn()
-
-      // We can't directly access the component's internal chart,
-      // but we can verify the pattern by checking if unmount doesn't throw
-      // and the component cleans up properly
       expect(() => wrapper.unmount()).not.toThrow()
     })
   })
