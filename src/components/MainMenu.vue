@@ -213,12 +213,12 @@ function closeMenu() {
 
 /* Hamburger button - mobile only */
 .hamburger {
-  display: flex !important;
+  display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 0.75rem !important;
-  background: rgba(255, 255, 255, 0.8) !important;
-  border: 1px solid rgba(16, 185, 129, 0.15) !important;
+  padding: 0.5rem 0.75rem;
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid rgba(16, 185, 129, 0.15);
   border-radius: 10px;
   color: var(--text-primary);
   font-size: 1rem;
