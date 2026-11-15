@@ -33,7 +33,10 @@ export async function incrementUnderCap(store, key, cap) {
     const result = entry
       ? await store.set(key, String(used + 1), { onlyIfMatch: entry.etag })
       : await store.set(key, '1', { onlyIfNew: true })
-    if (result?.modified) return 'ok'
+    // @netlify/blobs reports ANY conditional-write status except 412 as modified
+    // (e.g. a rejected parallel write), so a burst of 25 counted as 8 on Netlify.
+    // A write that really happened always returns the new ETag: require it.
+    if (result?.modified && result.etag) return 'ok'
   }
   return 'busy'
 }

@@ -8,8 +8,10 @@
 // - request size is capped and each data field is trimmed before it goes in the prompt
 // - per-user and global daily caps (lib/aiUsage.mjs), counted before xAI is called
 // - the answer length is capped, and nothing the user sent is logged
-import { connectLambda } from '@netlify/blobs'
-import { verifyFirebaseToken, json, preflight } from './lib/auth.mjs'
+// Netlify Functions v2 format (default export, Request -> Response): Netlify Blobs'
+// strong-consistency reads, which the counters need, don't work in Lambda-style
+// functions ("environment has not been configured with a 'uncachedEdgeURL'").
+import { verifyFirebaseToken } from './lib/auth.mjs'
 import { claimAiCall, PER_USER_DAILY_CAP } from './lib/aiUsage.mjs'
 
 // requestType -> key of the answer in the response body (what the app reads)
@@ -64,45 +66,57 @@ Structure the advice in short paragraphs (1-2 sentences each) with sections:
 Keep it encouraging, concise, and supportive, aligned with CBT principles. Be specific about mood correlations if data is available.`
 }
 
-export const handler = async (event) => {
-  if (event.httpMethod === 'OPTIONS') return preflight()
-  if (event.httpMethod !== 'POST') return json({ error: 'Method Not Allowed' }, 405)
+// Same headers as lib/auth.mjs json(), as a v2 Response
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Authorization, Content-Type',
+}
 
-  // 1. Signed-in users only
-  const userId = await verifyFirebaseToken(event)
-  if (!userId) return json({ error: 'Please sign in to get AI advice.' }, 401)
+function reply(body, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json', ...CORS_HEADERS },
+  })
+}
+
+export default async (req) => {
+  if (req.method === 'OPTIONS') {
+    return new Response(null, {
+      status: 204,
+      headers: { ...CORS_HEADERS, 'Access-Control-Allow-Methods': 'POST, OPTIONS' },
+    })
+  }
+  if (req.method !== 'POST') return reply({ error: 'Method Not Allowed' }, 405)
+
+  // 1. Signed-in users only (the shared helper reads Lambda-style headers)
+  const userId = await verifyFirebaseToken({ headers: { authorization: req.headers.get('authorization') || '' } })
+  if (!userId) return reply({ error: 'Please sign in to get AI advice.' }, 401)
 
   // 2. Size and shape of the request
-  const rawBody = event.body || ''
-  if (!rawBody) return json({ error: 'Request body is empty' }, 400)
-  if (Buffer.byteLength(rawBody, event.isBase64Encoded ? 'base64' : 'utf8') > MAX_BODY_BYTES) {
-    return json({ error: 'Request too large' }, 413)
-  }
+  const declaredLength = Number(req.headers.get('content-length') || 0)
+  if (declaredLength > MAX_BODY_BYTES) return reply({ error: 'Request too large' }, 413)
+  const rawBody = await req.text()
+  if (!rawBody) return reply({ error: 'Request body is empty' }, 400)
+  if (Buffer.byteLength(rawBody, 'utf8') > MAX_BODY_BYTES) return reply({ error: 'Request too large' }, 413)
   let requestBody
   try {
-    const text = event.isBase64Encoded ? Buffer.from(rawBody, 'base64').toString('utf8') : rawBody
-    requestBody = JSON.parse(text)
+    requestBody = JSON.parse(rawBody)
   } catch {
-    return json({ error: 'Invalid request body format' }, 400)
+    return reply({ error: 'Invalid request body format' }, 400)
   }
   const { userData, requestType } = requestBody || {}
-  if (!Object.hasOwn(RESPONSE_KEYS, requestType)) return json({ error: 'Unknown requestType' }, 400)
+  if (!Object.hasOwn(RESPONSE_KEYS, requestType)) return reply({ error: 'Unknown requestType' }, 400)
 
   if (!process.env.GROK_API_KEY) {
     console.error('grok-proxy: GROK_API_KEY is not set')
-    return json({ error: 'Server configuration error' }, 500)
+    return reply({ error: 'Server configuration error' }, 500)
   }
 
   // 3. Daily caps, counted before anything is spent
-  try {
-    connectLambda(event) // lets Netlify Blobs work in this Lambda-style function
-  } catch {
-    // Not on Netlify (local tests): claimAiCall reports 'unavailable' if no store exists
-  }
   const claim = await claimAiCall(userId)
   if (claim !== 'ok') {
     const [status, message] = REFUSALS[claim] || REFUSALS.unavailable
-    return json({ error: message, reason: claim }, status)
+    return reply({ error: message, reason: claim }, status)
   }
 
   // 4. Ask xAI
@@ -123,19 +137,19 @@ export const handler = async (event) => {
     if (!response.ok) {
       // Log the status only: xAI error texts can echo parts of the prompt (user data)
       console.error('grok-proxy: xAI API error', response.status)
-      return json({ error: 'The AI service returned an error. Please try again later.' }, 502)
+      return reply({ error: 'The AI service returned an error. Please try again later.' }, 502)
     }
 
     const data = await response.json()
     const content = data?.choices?.[0]?.message?.content
     if (typeof content !== 'string' || !content.trim()) {
       console.error('grok-proxy: xAI answer had no content')
-      return json({ error: 'The AI gave no answer. Please try again.' }, 502)
+      return reply({ error: 'The AI gave no answer. Please try again.' }, 502)
     }
 
-    return json({ [RESPONSE_KEYS[requestType]]: content })
+    return reply({ [RESPONSE_KEYS[requestType]]: content })
   } catch (error) {
     console.error('grok-proxy: request to xAI failed:', error instanceof Error ? error.message : String(error))
-    return json({ error: 'Failed to get AI response. Please try again later.' }, 500)
+    return reply({ error: 'Failed to get AI response. Please try again later.' }, 500)
   }
 }

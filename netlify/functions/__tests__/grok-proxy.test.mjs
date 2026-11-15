@@ -4,12 +4,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 const mockVerify = vi.fn()
 vi.mock('../lib/auth.mjs', () => ({
   verifyFirebaseToken: mockVerify,
-  json: (body, status = 200) => ({
-    statusCode: status,
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(body),
-  }),
-  preflight: () => ({ statusCode: 204, headers: {}, body: '' }),
 }))
 
 const mockClaim = vi.fn()
@@ -19,20 +13,27 @@ vi.mock('../lib/aiUsage.mjs', async (importOriginal) => {
 })
 
 vi.mock('@netlify/blobs', () => ({
-  connectLambda: vi.fn(),
   getStore: vi.fn(),
 }))
 
-const { handler, buildPrompt, MAX_BODY_BYTES } = await import('../grok-proxy.mjs')
+const { default: grokProxy, buildPrompt, MAX_BODY_BYTES } = await import('../grok-proxy.mjs')
+
+// Calls the v2 function and returns { statusCode, body } like the Lambda tests
+async function handler(request) {
+  const res = await grokProxy(request)
+  return { statusCode: res.status, body: await res.text() }
+}
 const { incrementUnderCap, claimAiCall: realClaimAiCall, PER_USER_DAILY_CAP, GLOBAL_DAILY_CAP } =
   await vi.importActual('../lib/aiUsage.mjs')
 
-const makeEvent = (body, headers = { authorization: 'Bearer valid-token' }) => ({
-  httpMethod: 'POST',
-  headers,
-  body: typeof body === 'string' ? body : JSON.stringify(body),
-  isBase64Encoded: false,
-})
+const makeEvent = (body, headers = { authorization: 'Bearer valid-token' }) =>
+  new Request('https://alcohol.dizid.com/.netlify/functions/grok-proxy', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...headers },
+    body: typeof body === 'string' ? body : JSON.stringify(body),
+  })
+
+const plainRequest = (method) => new Request('https://alcohol.dizid.com/.netlify/functions/grok-proxy', { method })
 
 const xaiAnswer = (content) => ({
   ok: true,
@@ -56,12 +57,12 @@ describe('grok-proxy handler', () => {
   })
 
   it('answers OPTIONS preflight', async () => {
-    const res = await handler({ httpMethod: 'OPTIONS', headers: {} })
+    const res = await handler(plainRequest('OPTIONS'))
     expect(res.statusCode).toBe(204)
   })
 
   it('refuses non-POST methods', async () => {
-    const res = await handler({ httpMethod: 'GET', headers: {} })
+    const res = await handler(plainRequest('GET'))
     expect(res.statusCode).toBe(405)
   })
 
@@ -111,6 +112,7 @@ describe('grok-proxy handler', () => {
     expect(res.statusCode).toBe(200)
     expect(JSON.parse(res.body)).toEqual({ advice: 'Drink water between drinks.' })
     expect(mockClaim).toHaveBeenCalledWith('user-1')
+    expect(mockVerify).toHaveBeenCalledWith({ headers: { authorization: 'Bearer valid-token' } })
     const sent = JSON.parse(global.fetch.mock.calls[0][1].body)
     expect(sent.max_tokens).toBeGreaterThan(0)
     expect(sent.messages[0].content).toContain('["stress"]')
@@ -209,5 +211,17 @@ describe('daily caps (aiUsage)', () => {
   it('incrementUnderCap reports busy after losing every race', async () => {
     const store = { getWithMetadata: async () => ({ data: '1', etag: 'a' }), set: async () => ({ modified: false }) }
     expect(await incrementUnderCap(store, 'k', 5)).toBe('busy')
+  })
+})
+
+describe('incrementUnderCap with the @netlify/blobs quirk', () => {
+  it('treats a "modified" write without an ETag as lost (rejected parallel write)', async () => {
+    let calls = 0
+    const store = {
+      getWithMetadata: async () => ({ data: '3', etag: 'a' }),
+      set: async () => (++calls < 3 ? { modified: true, etag: '' } : { modified: true, etag: 'b' }),
+    }
+    expect(await incrementUnderCap(store, 'k', 5)).toBe('ok')
+    expect(calls).toBe(3)
   })
 })
