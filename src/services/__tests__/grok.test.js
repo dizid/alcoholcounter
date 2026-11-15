@@ -1,10 +1,25 @@
 // Tests for Grok AI service
 import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+// The AI endpoint needs the Firebase ID token (T-0586)
+const { mockGetIdToken } = vi.hoisted(() => ({
+  mockGetIdToken: vi.fn().mockResolvedValue('mock-firebase-token'),
+}))
+vi.mock('../../firebase', () => ({
+  getIdToken: mockGetIdToken,
+}))
+
 import { getGrokAdvice, getMindfulnessTip } from '../grok.js'
+
+const authedHeaders = {
+  'Content-Type': 'application/json',
+  Authorization: 'Bearer mock-firebase-token',
+}
 
 describe('grok service', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mockGetIdToken.mockResolvedValue('mock-firebase-token')
     global.fetch = vi.fn()
     vi.spyOn(console, 'log').mockImplementation(() => {})
     vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -17,8 +32,14 @@ describe('grok service', () => {
     })
   }
 
+  // Error status without a JSON body
   const mockFetchError = (status) => {
-    global.fetch.mockResolvedValueOnce({ ok: false, status })
+    global.fetch.mockResolvedValueOnce({ ok: false, status, json: () => Promise.reject(new Error('no json')) })
+  }
+
+  // Error status with the server's JSON message
+  const mockFetchErrorBody = (status, body) => {
+    global.fetch.mockResolvedValueOnce({ ok: false, status, json: () => Promise.resolve(body) })
   }
 
   describe('getGrokAdvice', () => {
@@ -31,7 +52,7 @@ describe('grok service', () => {
 
       expect(global.fetch).toHaveBeenCalledWith('/.netlify/functions/grok-proxy', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authedHeaders,
         body: JSON.stringify({ userData, requestType: 'mainAdvice' }),
       })
       expect(result).toBe(mockAdvice)
@@ -53,6 +74,17 @@ describe('grok service', () => {
       await expect(getGrokAdvice({})).rejects.toThrow('Rate limit exceeded')
     })
 
+    it('should throw the server message on a refused call (daily limit)', async () => {
+      mockFetchErrorBody(429, { error: "You've used today's 20 AI answers.", reason: 'user_limit' })
+      await expect(getGrokAdvice({})).rejects.toThrow("You've used today's 20 AI answers.")
+    })
+
+    it('should not call the AI when the user is not signed in', async () => {
+      mockGetIdToken.mockRejectedValueOnce(new Error('Not authenticated'))
+      await expect(getGrokAdvice({})).rejects.toThrow('Not authenticated')
+      expect(global.fetch).not.toHaveBeenCalled()
+    })
+
     it('should throw on network error', async () => {
       global.fetch.mockRejectedValueOnce(new Error('Network error'))
       await expect(getGrokAdvice({})).rejects.toThrow('Network error')
@@ -69,7 +101,7 @@ describe('grok service', () => {
 
       expect(global.fetch).toHaveBeenCalledWith('/.netlify/functions/grok-proxy', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authedHeaders,
         body: JSON.stringify({ userData: { triggers }, requestType: 'mindfulnessTip' }),
       })
       expect(result).toBe(mockTip)
