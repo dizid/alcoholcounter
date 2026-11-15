@@ -168,7 +168,11 @@ function closeMenu() {
   background: linear-gradient(to bottom,
     rgba(250, 252, 253, 0.98),
     rgba(240, 247, 244, 0.95));
-  backdrop-filter: blur(8px);
+  /* No backdrop-filter here (T-0586): it makes this header the containing block
+     for the position:fixed slide-in panel and overlay below, so on phones the
+     panel was cut off at header height and showed only the logo and name, with
+     no links, Login or Logout (broken since Jan 26 2026). The background is
+     95-98% opaque, so the blur added nothing visible. */
   border-bottom: 1px solid rgba(16, 185, 129, 0.12);
   position: sticky;
   top: 0;
@@ -182,7 +186,7 @@ function closeMenu() {
   align-items: center;
   gap: 0.5rem;
   font-weight: 600;
-  color: var(--text-primary);
+  color: var(--text-primary, #1e3a3a);
 }
 
 .nav-brand-icon {
@@ -208,7 +212,7 @@ function closeMenu() {
 .nav-brand-text {
   font-size: 1.1rem;
   letter-spacing: -0.02em;
-  color: var(--text-primary);
+  color: var(--text-primary, #1e3a3a);
 }
 
 /* Hamburger button - mobile only */
@@ -220,7 +224,7 @@ function closeMenu() {
   background: rgba(255, 255, 255, 0.8);
   border: 1px solid rgba(16, 185, 129, 0.15);
   border-radius: 10px;
-  color: var(--text-primary);
+  color: var(--text-primary, #1e3a3a);
   font-size: 1rem;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -256,7 +260,7 @@ function closeMenu() {
 .nav-link {
   display: block;
   padding: 0.5rem 1rem;
-  color: var(--text-primary);
+  color: var(--text-primary, #1e3a3a);
   text-decoration: none;
   border-radius: 10px;
   font-weight: 500;
@@ -271,12 +275,12 @@ function closeMenu() {
   border-color: rgba(16, 185, 129, 0.25);
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.12);
   transform: translateY(-1px);
-  color: var(--accent);
+  color: var(--accent, #10b981);
 }
 
 .nav-link[aria-current="page"] {
-  background: var(--accent-light);
-  color: var(--accent);
+  background: var(--accent-light, rgba(16, 185, 129, 0.12));
+  color: var(--accent, #10b981);
   border-color: rgba(16, 185, 129, 0.3);
   box-shadow: 0 2px 8px rgba(16, 185, 129, 0.15);
 }
@@ -285,7 +289,7 @@ function closeMenu() {
   padding: 0.5rem 1rem;
   background: rgba(255, 255, 255, 0.6);
   border: 1px solid rgba(16, 185, 129, 0.1);
-  color: var(--text-secondary);
+  color: var(--text-secondary, #4a7c7c);
   font-weight: 500;
   cursor: pointer;
   border-radius: 10px;
@@ -296,7 +300,7 @@ function closeMenu() {
 .nav-button:hover {
   background: rgba(255, 255, 255, 0.9);
   border-color: rgba(16, 185, 129, 0.2);
-  color: var(--text-primary);
+  color: var(--text-primary, #1e3a3a);
   transform: translateY(-1px);
 }
 
@@ -316,7 +320,7 @@ function closeMenu() {
   bottom: 0;
   width: 280px;
   max-width: 80vw;
-  background: var(--bg-primary);
+  background: var(--bg-primary, #fafcfd);
   box-shadow: 4px 0 20px rgba(0, 0, 0, 0.15);
   z-index: 300;
   display: flex;
@@ -338,7 +342,7 @@ function closeMenu() {
   padding: 0.5rem;
   background: transparent;
   border: none;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #4a7c7c);
   font-size: 1.25rem;
   cursor: pointer;
   border-radius: 6px;
@@ -346,12 +350,16 @@ function closeMenu() {
 }
 
 .nav-close:hover {
-  background: var(--bg-tertiary);
-  color: var(--text-primary);
+  background: var(--bg-tertiary, #e4f0eb);
+  color: var(--text-primary, #1e3a3a);
 }
 
+/* List reset here: the global reset that was meant to replace Pico CSS
+   (src/style.css) is not loaded, so lists showed bullets (T-0586) */
 .nav-mobile-links {
   padding: 0.75rem;
+  margin: 0;
+  list-style: none;
   flex: 1;
   overflow-y: auto;
 }
@@ -361,19 +369,20 @@ function closeMenu() {
   align-items: center;
   gap: 0.75rem;
   padding: 0.875rem 1rem;
-  color: var(--text-primary);
+  color: var(--text-primary, #1e3a3a);
+  text-decoration: none;
   border-radius: 10px;
   font-weight: 500;
   transition: all 0.2s ease;
 }
 
 .nav-mobile-link:hover {
-  background: var(--bg-secondary);
+  background: var(--bg-secondary, #f0f7f4);
 }
 
 .nav-mobile-link.active {
-  background: var(--accent-light);
-  color: var(--accent);
+  background: var(--accent-light, rgba(16, 185, 129, 0.12));
+  color: var(--accent, #10b981);
 }
 
 .nav-mobile-button {
@@ -393,7 +402,7 @@ function closeMenu() {
 
 .nav-mobile-divider {
   height: 1px;
-  background: var(--border);
+  background: var(--border, #d1e0db);
   margin: 0.75rem 0;
 }
 
