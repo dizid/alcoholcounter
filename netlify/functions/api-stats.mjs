@@ -1,6 +1,25 @@
-// Drink statistics — GET ?type=today|weekly|historical|context|mood
+// Drink statistics — GET ?type=days|insights|today|weekly|historical|context|mood
+// T-0588: `days` and `insights` count by the user's local day (?tz=, local-midnight
+// rule) and in standard drinks; the older types are kept for older app versions.
 import { verifyFirebaseToken, json, preflight } from './lib/auth.mjs'
 import { getDb } from './lib/db.mjs'
+import { isDateString, addDays } from './lib/localDay.mjs'
+import { getUserTime, fetchWindow, withDays, todayFor } from './lib/userTime.mjs'
+import { dailySeries, insightsSummary, RANGES } from './lib/insights.mjs'
+
+// Drinks (with local `day`) and marked alcohol-free days for local days from..to
+async function loadDays(sql, userId, history, tz, from, to) {
+  const [start, end] = fetchWindow(from, to)
+  const rows = await sql`
+    SELECT created_at, std_drinks, trigger, mood FROM drink_logs
+    WHERE user_id = ${userId} AND created_at >= ${start} AND created_at < ${end}
+  `
+  const af = await sql`
+    SELECT to_char(day, 'YYYY-MM-DD') AS day FROM alcohol_free_days
+    WHERE user_id = ${userId} AND day >= ${from} AND day <= ${to}
+  `
+  return { rows: withDays(rows, history, tz, from, to), afDays: af.map(r => r.day) }
+}
 
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return preflight()
@@ -14,6 +33,30 @@ export const handler = async (event) => {
   const type = params.type
 
   try {
+    // Per local day from..to (default: the last 7 days): { today, days: [{ day, std, count, af }] }
+    if (type === 'days') {
+      const { history, tz } = await getUserTime(sql, userId, params.tz)
+      const today = todayFor(tz)
+      const to = params.to ?? today
+      const from = params.from ?? addDays(to, -6)
+      if (!isDateString(from) || !isDateString(to) || from > to) return json({ error: 'from and to must be dates, from <= to' }, 400)
+      if (addDays(from, 400) < to) return json({ error: 'at most 400 days' }, 400)
+      const { rows, afDays } = await loadDays(sql, userId, history, tz, from, to)
+      return json({ today, days: dailySeries(rows, afDays, from, to) })
+    }
+
+    // The Insights screen for range=week|month|year (ending today)
+    if (type === 'insights') {
+      const range = params.range ?? 'month'
+      if (!RANGES[range]) return json({ error: 'range must be week, month or year' }, 400)
+      const { history, tz } = await getUserTime(sql, userId, params.tz)
+      const today = todayFor(tz)
+      // Load this period and the one before it (for "vs last month")
+      const from = addDays(today, -(2 * RANGES[range] - 1))
+      const { rows, afDays } = await loadDays(sql, userId, history, tz, from, today)
+      return json({ today, ...insightsSummary(rows, afDays, today, range) })
+    }
+
     if (type === 'today') {
       const today = new Date().toISOString().split('T')[0]
       const [{ count }] = await sql`
