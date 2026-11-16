@@ -1,27 +1,25 @@
 <template>
-  <!-- Root app container -->
-  <div id="app">
-    <header>
-      <MainMenu />
-    </header>
-    <main>
-      <router-view></router-view>
-    </main>
-    <footer>
-      <!-- Optional footer content can be added here -->
-    </footer>
-  </div>
+  <!-- Root app container (T-0588: bottom nav instead of the old top menu) -->
+  <main>
+    <router-view></router-view>
+  </main>
+  <BottomNav v-if="showNav" />
 </template>
 
 <script setup>
-import { onMounted, onBeforeUnmount, ref, provide } from 'vue'
+import { onMounted, onBeforeUnmount, ref, provide, computed } from 'vue'
 import { useUserStore } from './stores/user'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from './firebase'
 import { addDrinkLog } from './services/db'
-import MainMenu from './components/MainMenu.vue'
+import BottomNav from './components/ui/BottomNav.vue'
+import { useRoute } from 'vue-router'
 
 const userStore = useUserStore()
+const route = useRoute()
+
+// The nav shows for signed-in users, not on the sign-in page
+const showNav = computed(() => Boolean(userStore.user) && route.path !== '/login')
 
 // Provide a quick log trigger that MainTracker can listen to
 const quickLogTrigger = ref(0)

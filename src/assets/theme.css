@@ -1,0 +1,82 @@
+/* T-0588 theme: warm, flat, private-journal look (output/alcohol-wim-review.md).
+   No gradients, glass, emoji or red. Tokens are used by every screen. */
+:root {
+  --bg: #12100E;
+  --surface: #1C1916;
+  --surface-2: #26221E;
+  --line: rgba(255, 240, 220, .08);
+  --ink: #F2ECE4;
+  --muted: #A1978C;
+  --drink: #E6C48F;  /* sand: logged drinks, ring, bars */
+  --above: #D9825F;  /* clay: only the part above the limit */
+  --free: #9DC9A3;   /* sage: alcohol-free days, good trends */
+  --on-drink: #1A1510;
+  --nav-h: 64px;
+  --safe: env(safe-area-inset-bottom, 0px);
+  --serif: Fraunces, Georgia, serif;
+  --sans: Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body { background: var(--bg); }
+body {
+  color: var(--ink);
+  font: 400 16px/1.5 var(--sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+
+h1 { font-family: var(--serif); font-weight: 600; font-size: 28px; line-height: 1.2; }
+h2 { font-family: var(--serif); font-weight: 600; font-size: 20px; line-height: 1.3; }
+h3 { font-size: 16px; font-weight: 600; }
+p { line-height: 1.5; }
+a { color: var(--drink); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: none; border: 0; cursor: pointer; }
+button:disabled { opacity: .5; cursor: default; }
+:focus-visible { outline: 2px solid var(--drink); outline-offset: 2px; }
+
+input, select, textarea {
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  width: 100%;
+}
+textarea { min-height: 96px; resize: vertical; }
+
+/* Shared pieces */
+.serif { font-family: var(--serif); font-weight: 600; font-optical-sizing: auto; font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.label { font-size: 14px; color: var(--muted); font-weight: 500; margin-bottom: 12px; }
+.section { margin-bottom: 24px; }
+.card { background: var(--surface); border-radius: 18px; padding: 20px; }
+.screen { max-width: 560px; margin: 0 auto; padding: 16px 20px calc(var(--nav-h) + var(--safe) + 24px); }
+.screen-head { margin: 8px 0 24px; }
+.screen-head .date { font-size: 14px; color: var(--muted); }
+.btn-primary {
+  height: 52px; width: 100%; border-radius: 14px; background: var(--drink); color: var(--on-drink);
+  font-weight: 600; display: grid; place-items: center;
+}
+.btn-2 {
+  height: 48px; width: 100%; border-radius: 14px; background: var(--surface-2); color: var(--ink);
+  font-weight: 600; display: grid; place-items: center;
+}
+.ghost {
+  height: 48px; width: 100%; border: 1px solid var(--line); border-radius: 14px; color: var(--free);
+  font-weight: 600; display: grid; place-items: center;
+}
+.chip {
+  height: 40px; padding: 0 16px; border-radius: 999px; border: 1px solid var(--line);
+  display: inline-grid; place-items: center; font-size: 14px; font-weight: 500; color: var(--muted);
+}
+.chip.on { background: var(--surface-2); color: var(--ink); border-color: var(--drink); }
+.error-text { color: var(--above); font-size: 14px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+svg.i { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.75; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+
+/* Older pages (About, Feedback) keep a readable layout in the new theme */
+.container { max-width: 560px; margin: 0 auto; padding: 16px 20px calc(var(--nav-h) + var(--safe) + 24px); display: grid; gap: 16px; }
+.container button:not(.google-button) { height: 48px; border-radius: 14px; background: var(--surface-2); padding: 0 16px; font-weight: 600; }

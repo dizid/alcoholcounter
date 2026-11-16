@@ -4,15 +4,22 @@ import { auth } from './firebase'
 import { useUserStore } from './stores/user'
 
 // Lazy load views for code splitting
-const MainTracker = () => import('./views/MainTracker.vue')
-const Dashboard = () => import('./views/Dashboard.vue')
+// T-0588: Today / Log / Insights / Me replace the old tracker and dashboard pages.
+const TodayView = () => import('./views/TodayView.vue')
+const LogView = () => import('./views/LogView.vue')
+const InsightsView = () => import('./views/InsightsView.vue')
+const MeView = () => import('./views/MeView.vue')
 const Feedback = () => import('./views/Feedback.vue')
 const Login = () => import('./views/Login.vue')
 const AboutTracker = () => import('./views/AboutTracker.vue')
 
 const routes = [
-  { path: '/', component: MainTracker, meta: { requiresAuth: true } },
-  { path: '/dashboard', component: Dashboard, meta: { requiresAuth: true } },
+  { path: '/', component: TodayView, meta: { requiresAuth: true } },
+  { path: '/log', component: LogView, meta: { requiresAuth: true } },
+  { path: '/insights', component: InsightsView, meta: { requiresAuth: true } },
+  { path: '/me', component: MeView, meta: { requiresAuth: true } },
+  // Old address of the dashboard (bookmarks)
+  { path: '/dashboard', redirect: '/insights' },
   { path: '/feedback', component: Feedback, meta: { requiresAuth: true } },
   { path: '/about-tracker', component: AboutTracker, meta: { requiresAuth: true } },
   { path: '/login', component: Login, meta: { requiresAuth: false } },

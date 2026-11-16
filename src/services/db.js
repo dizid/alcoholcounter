@@ -1,6 +1,7 @@
 // Database service — calls Netlify API functions backed by Neon PostgreSQL
 
 import { getIdToken } from '../firebase'
+import { deviceTimeZone } from '../lib/day'
 
 // Base fetch helper — attaches Firebase auth token to every request
 async function api(path, options = {}) {
@@ -116,4 +117,70 @@ export async function setWeeklyGoal(weeklyLimit) {
 export async function getWeeklyDrinkCount() {
   const data = await api('/.netlify/functions/api-stats?type=weekly')
   return data.count
+}
+
+// ---- T-0588 redesign: local days, standard drinks, alcohol-free days ----
+// Every day-based call sends the phone's time zone, so days end at local midnight.
+
+const tzParam = () => `tz=${encodeURIComponent(deviceTimeZone())}`
+
+// Logs a drink: { drink_type, std_drinks, size, trigger, mood, note, created_at }
+export async function addDrink(drink) {
+  return api('/.netlify/functions/api-drinks', {
+    method: 'POST',
+    body: JSON.stringify({ ...drink, tz: deviceTimeZone() }),
+  })
+}
+
+// Changes only the fields given
+export async function updateDrink(id, fields) {
+  return api('/.netlify/functions/api-drinks', {
+    method: 'PUT',
+    body: JSON.stringify({ id, ...fields }),
+  })
+}
+
+// Drinks of local days from..to ("YYYY-MM-DD"), newest first, each with `day`
+export async function getDrinksBetween(from, to) {
+  return api(`/.netlify/functions/api-drinks?from=${from}&to=${to}&${tzParam()}`)
+}
+
+// { today, days: [{ day, std, count, af }] } for local days from..to (default: last 7)
+export async function getDays(from, to) {
+  const range = from && to ? `&from=${from}&to=${to}` : ''
+  return api(`/.netlify/functions/api-stats?type=days${range}&${tzParam()}`)
+}
+
+// The Insights summary for range week|month|year
+export async function getInsights(range) {
+  return api(`/.netlify/functions/api-stats?type=insights&range=${range}&${tzParam()}`)
+}
+
+// Marks a local day alcohol-free ("Nothing today")
+export async function markAlcoholFree(day) {
+  return api('/.netlify/functions/api-af-days', {
+    method: 'POST',
+    body: JSON.stringify({ day, tz: deviceTimeZone() }),
+  })
+}
+
+// Removes an alcohol-free mark
+export async function unmarkAlcoholFree(day) {
+  return api('/.netlify/functions/api-af-days', {
+    method: 'DELETE',
+    body: JSON.stringify({ day }),
+  })
+}
+
+// { weekly_limit, daily_limit, af_days_goal, settings }
+export async function getGoals() {
+  return api('/.netlify/functions/api-goals')
+}
+
+// Saves only the fields given (limits and/or settings)
+export async function saveGoals(fields) {
+  return api('/.netlify/functions/api-goals', {
+    method: 'PUT',
+    body: JSON.stringify(fields),
+  })
 }

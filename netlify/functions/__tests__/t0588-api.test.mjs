@@ -190,7 +190,7 @@ describe('insights lib', () => {
   it('insightsSummary compares per-week drinks with the period before', () => {
     const rows = [
       { day: '2026-11-16', std_drinks: '7' },   // this week
-      { day: '2026-11-09', std_drinks: '14' },  // week before
+      { day: '2026-11-04', std_drinks: '14' },  // week before (tracked from its start)
     ]
     const summary = insightsSummary(rows, ['2026-11-15'], '2026-11-16', 'week')
     expect(summary.from).toBe('2026-11-10')
@@ -206,5 +206,17 @@ describe('insights lib', () => {
     expect(summary.changePct).toBeNull()
     expect(summary.prevPerWeek).toBeNull()
     expect(summary.days).toHaveLength(30)
+  })
+})
+
+describe('insights comparison only with a tracked earlier period', () => {
+  it('no change when tracking started late in the earlier period', () => {
+    const rows = [
+      { day: '2026-11-16', std_drinks: '7' },
+      { day: '2026-11-08', std_drinks: '1' }, // only the last day of the week before
+    ]
+    const summary = insightsSummary(rows, [], '2026-11-16', 'week')
+    expect(summary.changePct).toBeNull()
+    expect(summary.prevPerWeek).toBeNull()
   })
 })

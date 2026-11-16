@@ -56,7 +56,11 @@ export function insightsSummary(rows, afDays, today, range) {
   const days = dailySeries(current, afDays, from, today)
   const perWeek = round1(sum(current) / weeks)
   const prevPerWeek = round1(sum(previous) / weeks)
-  const changePct = previous.length && prevPerWeek > 0 ? Math.round(((perWeek - prevPerWeek) / prevPerWeek) * 100) : null
+  // Only compare when the earlier period was tracked for at least its second half
+  // (someone who started mid-period would otherwise see a big false change).
+  const prevStart = previous.reduce((min, r) => (r.day < min ? r.day : min), '9999-12-31')
+  const prevTracked = previous.length > 0 && prevStart <= addDays(prevFrom, Math.floor(length / 2))
+  const changePct = prevTracked && prevPerWeek > 0 ? Math.round(((perWeek - prevPerWeek) / prevPerWeek) * 100) : null
 
   return {
     range,
@@ -65,7 +69,7 @@ export function insightsSummary(rows, afDays, today, range) {
     days,
     total: round1(sum(current)),
     perWeek,
-    prevPerWeek: previous.length ? prevPerWeek : null,
+    prevPerWeek: prevTracked ? prevPerWeek : null,
     changePct,
     afDays: days.filter(d => d.af).length,
     dayCount: length,

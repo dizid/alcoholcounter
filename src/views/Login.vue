@@ -65,34 +65,36 @@ async function handleGoogleLogin() {
 </script>
 
 <style scoped>
+/* T-0588 theme: warm dark, flat */
+.container { min-height: 100vh; align-content: center; padding-bottom: 48px; }
+h1 { font-size: 32px; }
+.container > p { color: var(--muted); }
 .google-button {
-  background-color: #ffffff;
-  color: #333;
-  border: 1px solid #ddd;
+  height: 52px; width: 100%; border-radius: 14px;
+  background-color: var(--ink);
+  color: var(--on-drink);
+  font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
 }
 
-.google-button:hover {
-  background-color: #f1f1f1;
+.warning-message {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  color: var(--drink);
+  padding: 12px;
+  border-radius: 14px;
 }
 
-.warning-message {
-  background: #fff3cd;
-  border: 1px solid #ffc107;
-  color: #856404;
-  padding: 12px;
-  border-radius: 4px;
-  margin-bottom: 16px;
-}
+.error { color: var(--above); font-size: 14px; }
 
 .divider {
   display: flex;
   align-items: center;
-  margin: 1.5rem 0;
-  color: var(--text-secondary, #7f8c8d);
+  margin: 8px 0;
+  color: var(--muted);
 }
 
 .divider::before,
@@ -100,7 +102,7 @@ async function handleGoogleLogin() {
   content: '';
   flex: 1;
   height: 1px;
-  background: var(--border, #dee2e6);
+  background: var(--line);
 }
 
 .divider span {
