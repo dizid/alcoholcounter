@@ -12,6 +12,7 @@ const MeView = () => import('./views/MeView.vue')
 const Feedback = () => import('./views/Feedback.vue')
 const Login = () => import('./views/Login.vue')
 const AboutTracker = () => import('./views/AboutTracker.vue')
+const PrivacyView = () => import('./views/PrivacyView.vue')
 
 const routes = [
   { path: '/', component: TodayView, meta: { requiresAuth: true } },
@@ -23,6 +24,8 @@ const routes = [
   { path: '/feedback', component: Feedback, meta: { requiresAuth: true } },
   { path: '/about-tracker', component: AboutTracker, meta: { requiresAuth: true } },
   { path: '/login', component: Login, meta: { requiresAuth: false } },
+  // Privacy notice (T-0609): open to everyone, linked from sign-in, Me and the consent banner
+  { path: '/privacy', component: PrivacyView, meta: { requiresAuth: false } },
 ]
 
 const router = createRouter({

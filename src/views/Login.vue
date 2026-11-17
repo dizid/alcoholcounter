@@ -25,6 +25,9 @@
     </button>
 
     <p v-if="error" class="error" role="alert" aria-live="assertive">{{ error }}</p>
+
+    <!-- T-0609: what happens with your data, readable before signing in -->
+    <p class="privacy-note">What happens with your data: <router-link to="/privacy">Privacy</router-link></p>
   </div>
 </template>
 
@@ -89,6 +92,8 @@ h1 { font-size: 32px; }
 }
 
 .error { color: var(--above); font-size: 14px; }
+.privacy-note { margin-top: 24px; font-size: 14px; }
+.privacy-note a { color: var(--drink); text-decoration: underline; }
 
 .divider {
   display: flex;

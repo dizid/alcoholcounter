@@ -1,7 +1,7 @@
 // User goals and settings — GET (fetch), PUT (partial upsert)
 // T-0588: besides the weekly limit, a daily limit, an alcohol-free-days-per-week
 // goal and a few app settings (coach on/off, the 4 quick drinks, the size of a
-// standard drink). The time-zone history in settings is managed by lib/userTime.mjs
+// standard drink, and since T-0609 the time of the user's AI consent). The time-zone history in settings is managed by lib/userTime.mjs
 // and is never returned or overwritten here.
 import { verifyFirebaseToken, json, preflight } from './lib/auth.mjs'
 import { getDb } from './lib/db.mjs'
@@ -17,6 +17,12 @@ export function readSettings(input) {
   if ('coachOn' in input) {
     if (typeof input.coachOn !== 'boolean') return { error: 'coachOn must be true or false' }
     values.coachOn = input.coachOn
+  }
+  // T-0609: the user's OK to send their numbers to xAI for the coach. The app sends
+  // true/false; the server stores its own time of the yes (aiConsentAt), or null.
+  if ('aiConsent' in input) {
+    if (typeof input.aiConsent !== 'boolean') return { error: 'aiConsent must be true or false' }
+    values.aiConsentAt = input.aiConsent ? new Date().toISOString() : null
   }
   if ('stdDrinkGrams' in input) {
     if (!STD_DRINK_GRAMS.includes(input.stdDrinkGrams)) return { error: `stdDrinkGrams must be one of ${STD_DRINK_GRAMS.join(', ')}` }

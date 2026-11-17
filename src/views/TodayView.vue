@@ -69,7 +69,21 @@
       </div>
       <p v-else>{{ thought }}</p>
       <p v-if="coachError" class="error-text coach-error" role="alert">{{ coachError }}</p>
-      <button type="button" class="btn-2 ask-coach" :disabled="coachLoading" @click="askCoach">
+      <!-- T-0609: the first time, ask before anything goes to xAI -->
+      <div v-if="consentOpen" class="coach-consent" role="group" aria-labelledby="coach-consent-text">
+        <p id="coach-consent-text" class="coach-consent-text">
+          To answer, the coach sends your drinks per day for the last 30 days, and how often you logged each
+          place, company, drink type and mood, to xAI (the company behind Grok). Never your name or email.
+          <router-link to="/privacy">Privacy</router-link>
+        </p>
+        <div class="coach-consent-buttons">
+          <button type="button" class="btn-2" @click="consentOpen = false">Not now</button>
+          <button type="button" class="btn-primary" :disabled="coachLoading" @click="agreeAndAsk">
+            {{ coachLoading ? 'Thinking…' : 'Agree and ask' }}
+          </button>
+        </div>
+      </div>
+      <button v-else type="button" class="btn-2 ask-coach" :disabled="coachLoading" @click="onAskCoach">
         {{ coachLoading ? 'Thinking…' : coachAnswer ? 'Ask again' : 'Ask the coach' }}
       </button>
     </section>
@@ -88,7 +102,7 @@ import UndoToast from '../components/ui/UndoToast.vue'
 import AddDrinkSheet from '../components/AddDrinkSheet.vue'
 import {
   addDrink, deleteDrinkLog, getDays, getGoals, markAlcoholFree, unmarkAlcoholFree,
-  getContextFrequencies, getMoodCorrelations,
+  getContextFrequencies, getMoodCorrelations, saveGoals,
 } from '../services/db'
 import { getGrokAdvice } from '../services/grok'
 import { addDays, longDate, formatStd, drinksLabel } from '../lib/day'
@@ -107,6 +121,7 @@ const yesterdayDismissed = ref(sessionStorage.getItem('askYesterdayDismissed') =
 const coachAnswer = ref(null)
 const coachLoading = ref(false)
 const coachError = ref('')
+const consentOpen = ref(false) // T-0609: the "OK to send to xAI?" box
 let toastTimer = null
 
 // Today in the phone's own time zone ("YYYY-MM-DD")
@@ -125,6 +140,8 @@ const monday = computed(() => {
 const todayLabel = computed(() => longDate(today.value))
 const dailyLimit = computed(() => goals.value.daily_limit || null)
 const coachOn = computed(() => goals.value.settings?.coachOn !== false)
+// Set by the server when the user agreed to send their numbers to xAI (T-0609)
+const aiConsented = computed(() => Boolean(goals.value.settings?.aiConsentAt))
 const quickDrinks = computed(() => goals.value.settings?.quickDrinks || DEFAULT_QUICK_DRINKS)
 const dayEntry = day => days.value.find(d => d.day === day) || { day, std: 0, count: 0, af: false }
 const todayEntry = computed(() => dayEntry(today.value))
@@ -280,6 +297,31 @@ async function askCoach() {
   }
 }
 
+// "Ask the coach": nothing goes to xAI before the user agreed once (T-0609)
+function onAskCoach() {
+  if (!aiConsented.value) {
+    consentOpen.value = true
+    return
+  }
+  askCoach()
+}
+
+// Saves the yes (the server stamps the time), then asks the coach
+async function agreeAndAsk() {
+  coachError.value = ''
+  coachLoading.value = true
+  try {
+    await saveGoals({ settings: { aiConsent: true } })
+  } catch {
+    coachError.value = "Couldn't save your choice. Please try again."
+    coachLoading.value = false
+    return
+  }
+  goals.value = { ...goals.value, settings: { ...goals.value.settings, aiConsentAt: new Date().toISOString() } }
+  consentOpen.value = false
+  await askCoach()
+}
+
 // Reload when the app comes back to the front (the day may have changed)
 function onVisible() {
   if (document.visibilityState === 'visible') load()
@@ -323,6 +365,10 @@ onBeforeUnmount(() => {
 .coach-answer { display: grid; gap: 8px; }
 .coach-error { margin-top: 8px; font-size: 14px; }
 .ask-coach { margin-top: 16px; }
+.coach-consent { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--line); }
+.coach .coach-consent-text { font-size: 14px; line-height: 1.45; color: var(--muted); margin: 0 0 12px; }
+.coach-consent-text a { color: var(--drink); text-decoration: underline; }
+.coach-consent-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 
 .ask p { margin-bottom: 12px; }
 .ask-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

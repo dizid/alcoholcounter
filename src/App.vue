@@ -4,6 +4,8 @@
     <router-view></router-view>
   </main>
   <BottomNav v-if="showNav" />
+  <!-- Asks once whether Google Analytics may run (T-0609) -->
+  <ConsentBanner :above-nav="showNav" />
 </template>
 
 <script setup>
@@ -13,6 +15,7 @@ import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from './firebase'
 import { addDrinkLog } from './services/db'
 import BottomNav from './components/ui/BottomNav.vue'
+import ConsentBanner from './components/ConsentBanner.vue'
 import { useRoute } from 'vue-router'
 
 const userStore = useUserStore()

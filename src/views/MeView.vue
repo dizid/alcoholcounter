@@ -1,6 +1,7 @@
 <!-- MeView.vue — goals, quick drinks, coach, export and account (T-0588, mockup v2).
      Grouped plain rows, no cards. Left out for now (need Marc's OK or more setup):
-     reminders, app lock, the privacy notice (draft) and "Delete all my data". -->
+     reminders, app lock and "Delete all my data" (by email for now, see the privacy notice).
+     T-0609 added the privacy notice link and the Google Analytics switch. -->
 <template>
   <div class="screen">
     <header class="screen-head me-head">
@@ -41,7 +42,7 @@
 
     <h2 class="group">Coach</h2>
     <div class="r">
-      <div class="txt" id="coach-label">Coach<small>Sends counts and patterns to the AI (xAI), never your name or email</small></div>
+      <div class="txt" id="coach-label">Coach<small>When you ask, sends your daily counts and patterns to xAI (Grok), never your name or email. Off also withdraws your OK</small></div>
       <button
         type="button" class="tg" role="switch" :aria-checked="coachOn" aria-labelledby="coach-label"
         :class="{ on: coachOn }" @click="toggleCoach"
@@ -53,6 +54,14 @@
       <span>{{ exporting ? 'Preparing your file…' : 'Export my data (CSV)' }}</span>
       <span class="val"><AppIcon name="chev" /></span>
     </button>
+    <div class="r">
+      <div class="txt" id="analytics-label">Google Analytics<small>Counts visits with cookies in this browser. Never your drinks or moods</small></div>
+      <button
+        type="button" class="tg" role="switch" :aria-checked="analyticsOn" aria-labelledby="analytics-label"
+        :class="{ on: analyticsOn }" @click="toggleAnalytics"
+      ></button>
+    </div>
+    <router-link to="/privacy" class="r row-button"><span>Privacy notice</span><span class="val"><AppIcon name="chev" /></span></router-link>
 
     <h2 class="group sr-only">More</h2>
     <router-link to="/about-tracker" class="r row-button first"><span>About</span><span class="val"><AppIcon name="chev" /></span></router-link>
@@ -71,6 +80,7 @@ import { getGoals, saveGoals, getRecentDrinkLogs } from '../services/db'
 import { DRINK_TYPES, SIZES, DEFAULT_QUICK_DRINKS, stdFor, typeLabel } from '../lib/drinks'
 import { formatStd } from '../lib/day'
 import { drinksToCsv } from '../lib/exportCsv'
+import { getAnalyticsChoice, setAnalyticsChoice } from '../lib/analytics'
 
 const GOAL_ROWS = [
   { key: 'daily_limit', label: 'Daily limit', unit: 'drinks', max: 50 },
@@ -148,15 +158,25 @@ async function saveQuick() {
   }
 }
 
+// Turning the coach off also withdraws the OK to send data to xAI (T-0609);
+// turning it on again asks for that OK before the next answer.
 async function toggleCoach() {
+  const previous = settings.value
   const next = !coachOn.value
-  settings.value = { ...settings.value, coachOn: next }
+  settings.value = next ? { ...previous, coachOn: true } : { ...previous, coachOn: false, aiConsentAt: null }
   try {
-    await saveGoals({ settings: { coachOn: next } })
+    await saveGoals({ settings: next ? { coachOn: true } : { coachOn: false, aiConsent: false } })
   } catch {
-    settings.value = { ...settings.value, coachOn: !next }
+    settings.value = previous
     error.value = "Couldn't save that. Please try again."
   }
+}
+
+// Google Analytics on/off for this browser (T-0609, same choice as the banner)
+const analyticsOn = ref(getAnalyticsChoice() === 'granted')
+function toggleAnalytics() {
+  analyticsOn.value = !analyticsOn.value
+  setAnalyticsChoice(analyticsOn.value ? 'granted' : 'denied')
 }
 
 // Downloads all drinks as a CSV file (fetched 100 at a time)
