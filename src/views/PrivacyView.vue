@@ -36,6 +36,8 @@
           email address, name, profile photo link and a user ID.</li>
         <li><strong>What you log:</strong> each drink (type, size, standard drinks, time) and, if you add them, the
           place, company, mood, trigger and note; the days you mark as alcohol-free.</li>
+        <li><strong>Exercises:</strong> only what you choose to save there: a reflection after the breathing or urge
+          exercise, and a trigger with your coping idea.</li>
         <li><strong>Your settings:</strong> goals and limits, quick drinks, whether the coach is on, when you agreed
           to the coach, and your time zone history (so each drink stays on the right day when you travel).</li>
       </ul>
@@ -50,7 +52,8 @@
       <p>
         The coach is only asked when you tap "Ask the coach", and the first time we ask your OK. It then sends xAI
         (the company behind Grok, in the United States) your standard drinks per day for the last 30 days, and how
-        often you logged each place, company, drink type and mood. It never sends your name, email or notes. xAI
+        often you logged each place, company, drink type, mood and trigger. It never sends your name, email, notes
+        or what you save in the exercises. xAI
         handles this under its own <a href="https://x.ai/legal/privacy-policy" rel="noopener" target="_blank">privacy
         policy</a>. We don't keep a copy of your question or the answer, and nothing you send is written to our logs.
         To stop: turn the coach off in Me. That also withdraws your OK.

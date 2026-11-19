@@ -101,12 +101,13 @@ export const handler = async (event) => {
 
     if (type === 'context') {
       const rows = await sql`
-        SELECT location, company, drink_type, mood
+        SELECT location, company, drink_type, mood, trigger
         FROM drink_logs
         WHERE user_id = ${userId}
       `
 
-      const freq = { location: {}, company: {}, drink_type: {}, mood: {} }
+      // T-0623: trigger counts too (the coach said "no triggers logged" without them)
+      const freq = { location: {}, company: {}, drink_type: {}, mood: {}, trigger: {} }
       rows.forEach(log => {
         Object.keys(freq).forEach(key => {
           if (log[key]) {

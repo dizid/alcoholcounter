@@ -21,8 +21,10 @@ import { useRoute } from 'vue-router'
 const userStore = useUserStore()
 const route = useRoute()
 
-// The nav shows for signed-in users, not on the sign-in page
-const showNav = computed(() => Boolean(userStore.user) && route.path !== '/login')
+// The nav shows for signed-in users, not on the sign-in page.
+// T-0623: only once the first route has resolved (route.matched is empty before),
+// otherwise it briefly lit up "Today" on every cold start of another tab.
+const showNav = computed(() => Boolean(userStore.user) && route.matched.length > 0 && route.path !== '/login')
 
 // Provide a quick log trigger that MainTracker can listen to
 const quickLogTrigger = ref(0)

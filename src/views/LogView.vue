@@ -27,7 +27,12 @@
           <button type="button" class="entry" :aria-label="`Edit ${entryLabel(drink)} at ${timeOfDay(drink.created_at)}`" @click="edit(drink)">
             <span class="tm">{{ timeOfDay(drink.created_at) }}</span>
             <AppIcon :name="iconFor(drink.drink_type)" />
-            <span class="what">{{ entryLabel(drink) }}</span>
+            <span class="what">
+              {{ entryLabel(drink) }}
+              <!-- T-0623: the context added when logging (trigger, mood, note) -->
+              <span v-if="contextLine(drink)" class="ctx">{{ contextLine(drink) }}</span>
+              <span v-if="drink.note" class="note">{{ drink.note }}</span>
+            </span>
             <span class="amt">{{ formatStd(drink.std_drinks) }}</span>
           </button>
         </li>
@@ -95,6 +100,11 @@ const selectedTitle = computed(() => {
 // "Wine, large" (older entries without a size: just the type)
 function entryLabel(drink) {
   return drink.size ? `${typeLabel(drink.drink_type)}, ${drink.size}` : typeLabel(drink.drink_type)
+}
+
+// "Social · Happy" from the trigger and mood (older entries: place and company)
+function contextLine(drink) {
+  return [drink.trigger, drink.mood, drink.location, drink.company].filter(Boolean).join(' · ')
 }
 
 function dayAria(d) {
@@ -228,8 +238,11 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
 .entries { list-style: none; }
 .entry {
   width: 100%; min-height: 56px; display: grid; grid-template-columns: 48px 24px 1fr auto; gap: 12px;
-  align-items: center; border-bottom: 1px solid var(--line); text-align: left;
+  align-items: center; border-bottom: 1px solid var(--line); text-align: left; padding: 8px 0;
 }
+.what { min-width: 0; }
+.ctx { display: block; font-size: 13px; color: var(--muted); margin-top: 2px; }
+.note { display: block; font-size: 13px; color: var(--muted); font-style: italic; margin-top: 2px; overflow-wrap: anywhere; }
 .tm { font-size: 14px; color: var(--muted); font-variant-numeric: tabular-nums; }
 .amt { font-variant-numeric: tabular-nums; color: var(--muted); }
 .empty { padding: 16px 0; display: grid; gap: 16px; }

@@ -24,11 +24,15 @@ export const handler = async (event) => {
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body || '{}')
       const { trigger_text, coping_strategy = null } = body
-      if (!trigger_text) return json({ error: 'trigger_text required' }, 400)
+      // T-0623: text only, capped (the Exercises card uses this again)
+      if (typeof trigger_text !== 'string' || !trigger_text.trim()) return json({ error: 'trigger_text required' }, 400)
+      if (coping_strategy !== null && typeof coping_strategy !== 'string') return json({ error: 'coping_strategy must be text' }, 400)
+      const triggerText = trigger_text.trim().slice(0, 200)
+      const copingStrategy = coping_strategy?.trim().slice(0, 200) || null
 
       await sql`
         INSERT INTO user_triggers (user_id, trigger_text, coping_strategy)
-        VALUES (${userId}, ${trigger_text.trim()}, ${coping_strategy ? coping_strategy.trim() : null})
+        VALUES (${userId}, ${triggerText}, ${copingStrategy})
       `
       return json({ ok: true }, 201)
     }

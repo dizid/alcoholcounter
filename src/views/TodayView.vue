@@ -10,6 +10,8 @@
 
     <p v-if="loadError" class="error-text section" role="alert">{{ loadError }}</p>
 
+    <!-- T-0623: nothing below shows before the first load, so no "0 today" flash -->
+    <template v-if="loaded">
     <!-- Yesterday had nothing logged: ask once whether it was alcohol-free -->
     <div v-if="askYesterday" class="card section ask">
       <p>Yesterday has nothing logged. Was it alcohol-free?</p>
@@ -73,7 +75,7 @@
       <div v-if="consentOpen" class="coach-consent" role="group" aria-labelledby="coach-consent-text">
         <p id="coach-consent-text" class="coach-consent-text">
           To answer, the coach sends your drinks per day for the last 30 days, and how often you logged each
-          place, company, drink type and mood, to xAI (the company behind Grok). Never your name or email.
+          place, company, drink type, mood and trigger, to xAI (the company behind Grok). Never your name or email.
           <router-link to="/privacy">Privacy</router-link>
         </p>
         <div class="coach-consent-buttons">
@@ -88,6 +90,10 @@
       </button>
     </section>
 
+    <!-- T-0623: the exercises from the old tracker (breathing, urge surfing, triggers, reframe) -->
+    <SupportTools />
+    </template>
+
     <AddDrinkSheet :open="sheetOpen" initial-type="other" @close="sheetOpen = false" @save="saveFromSheet" />
     <UndoToast :message="toast.message" :can-undo="Boolean(toast.undo)" @undo="runUndo" />
   </div>
@@ -100,6 +106,7 @@ import DrinkRing from '../components/ui/DrinkRing.vue'
 import DayBars from '../components/ui/DayBars.vue'
 import UndoToast from '../components/ui/UndoToast.vue'
 import AddDrinkSheet from '../components/AddDrinkSheet.vue'
+import SupportTools from '../components/SupportTools.vue'
 import {
   addDrink, deleteDrinkLog, getDays, getGoals, markAlcoholFree, unmarkAlcoholFree,
   getContextFrequencies, getMoodCorrelations, saveGoals,
@@ -113,6 +120,7 @@ import { todayThought, splitAdvice } from '../lib/coach'
 const days = ref([])          // local days from Monday-1 to Sunday: [{ day, std, count, af }]
 const goals = ref({ daily_limit: null, weekly_limit: null, af_days_goal: null, settings: {} })
 const loadError = ref('')
+const loaded = ref(false)     // true after the first load (success or error)
 const logging = ref(false)
 const flashIndex = ref(-1)
 const sheetOpen = ref(false)
@@ -193,6 +201,8 @@ async function load() {
     goals.value = { ...goals.value, ...goalsResult }
   } catch {
     loadError.value = "Couldn't load your day. Check your connection and try again."
+  } finally {
+    loaded.value = true
   }
 }
 
@@ -288,7 +298,11 @@ async function askCoach() {
       getMoodCorrelations(),
     ])
     const historicalDrinkingPatterns = Object.fromEntries(month.days.map(d => [d.day, d.af ? 'alcohol-free' : d.std]))
-    const advice = await getGrokAdvice({ triggers: [], historicalDrinkingPatterns, contextFrequencies, moodCorrelations, reflections: [] })
+    // T-0623: how often each trigger was picked when logging (counts only, never notes)
+    const triggers = Object.entries(contextFrequencies?.trigger || {})
+      .sort((a, b) => b[1] - a[1])
+      .map(([trigger, count]) => ({ trigger, count }))
+    const advice = await getGrokAdvice({ triggers, historicalDrinkingPatterns, contextFrequencies, moodCorrelations, reflections: [] })
     coachAnswer.value = splitAdvice(advice)
   } catch (err) {
     coachError.value = err?.message || "The coach couldn't answer right now."

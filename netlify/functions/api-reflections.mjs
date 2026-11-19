@@ -2,6 +2,9 @@
 import { verifyFirebaseToken, json, preflight } from './lib/auth.mjs'
 import { getDb } from './lib/db.mjs'
 
+// 'awareness' = breathing, 'intervention' = urge surfing (old tracker); 'breathing'/'meditation' in older tests
+const EXERCISE_TYPES = ['awareness', 'intervention', 'breathing', 'meditation']
+
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return preflight()
 
@@ -24,11 +27,13 @@ export const handler = async (event) => {
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body || '{}')
       const { reflection_text, exercise_type } = body
-      if (!reflection_text) return json({ error: 'reflection_text required' }, 400)
+      // T-0623: text only, capped; exercise type from a short known list
+      if (typeof reflection_text !== 'string' || !reflection_text.trim()) return json({ error: 'reflection_text required' }, 400)
+      const exerciseType = EXERCISE_TYPES.includes(exercise_type) ? exercise_type : null
 
       await sql`
         INSERT INTO user_reflections (user_id, reflection_text, exercise_type)
-        VALUES (${userId}, ${reflection_text.trim()}, ${exercise_type || null})
+        VALUES (${userId}, ${reflection_text.trim().slice(0, 1000)}, ${exerciseType})
       `
       return json({ ok: true }, 201)
     }
