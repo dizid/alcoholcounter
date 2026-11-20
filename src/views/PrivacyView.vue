@@ -1,7 +1,7 @@
 <!-- PrivacyView.vue — privacy notice for alcohol.dizid.com (T-0609, Marc OK Nov 17 2026).
      Based on the T-0590 draft, with the facts checked in the code on Nov 17 2026:
      Neon Postgres in AWS ap-southeast-1 (Singapore), Firebase Auth (Google sign-in),
-     xAI for the coach (after consent), Google Analytics (after consent), Google Fonts,
+     xAI for the coach (after consent), Google Analytics (after consent),
      Netlify hosting + Blobs AI counters, Google Forms for feedback.
      Keep this page true: update it whenever the app starts sending data somewhere new. -->
 <template>
@@ -9,7 +9,7 @@
     <header class="screen-head">
       <router-link to="/" class="back">← DrinkTracker</router-link>
       <h1>Privacy</h1>
-      <div class="date">Last updated 17 November 2026</div>
+      <div class="date">Last updated 20 November 2026</div>
     </header>
 
     <section>
@@ -75,8 +75,6 @@
       <ul>
         <li><strong>Netlify</strong> (United States) hosts the app and runs its server functions. It also keeps a
           small counter of AI answers per user per day, to enforce the daily limit.</li>
-        <li><strong>Google Fonts:</strong> the app's fonts load from Google's servers, so Google sees your IP address
-          when the app opens.</li>
         <li><strong>Feedback:</strong> the feedback page is a Google Form. Only what you type there is sent.</li>
       </ul>
       <p>Some of these services are outside the European Union (the United States and Singapore).</p>

@@ -3,6 +3,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import router from './router'
+import './assets/fonts.css' // Fraunces + Inter served from this site (T-0636)
 import './assets/theme.css' // Global theme (T-0588)
 import { startAnalyticsIfAllowed } from './lib/analytics'
 
