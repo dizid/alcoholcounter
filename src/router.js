@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { onAuthStateChanged } from 'firebase/auth'
 import { auth } from './firebase'
 import { useUserStore } from './stores/user'
+import { applyPageMeta } from './lib/pageMeta'
 
 // Lazy load views for code splitting
 // T-0588: Today / Log / Insights / Me replace the old tracker and dashboard pages.
@@ -14,18 +15,37 @@ const Login = () => import('./views/Login.vue')
 const AboutTracker = () => import('./views/AboutTracker.vue')
 const PrivacyView = () => import('./views/PrivacyView.vue')
 
+// meta.title / meta.fullTitle / meta.description feed the tab title and search
+// snippet (src/lib/pageMeta.js). Only /login and /privacy are public, so only those
+// two need a real description; they are also the two pages in public/sitemap.xml.
 const routes = [
-  { path: '/', component: TodayView, meta: { requiresAuth: true } },
-  { path: '/log', component: LogView, meta: { requiresAuth: true } },
-  { path: '/insights', component: InsightsView, meta: { requiresAuth: true } },
-  { path: '/me', component: MeView, meta: { requiresAuth: true } },
+  { path: '/', component: TodayView, meta: { requiresAuth: true, title: 'Today' } },
+  { path: '/log', component: LogView, meta: { requiresAuth: true, title: 'Log' } },
+  { path: '/insights', component: InsightsView, meta: { requiresAuth: true, title: 'Insights' } },
+  { path: '/me', component: MeView, meta: { requiresAuth: true, title: 'Me' } },
   // Old address of the dashboard (bookmarks)
   { path: '/dashboard', redirect: '/insights' },
-  { path: '/feedback', component: Feedback, meta: { requiresAuth: true } },
-  { path: '/about-tracker', component: AboutTracker, meta: { requiresAuth: true } },
-  { path: '/login', component: Login, meta: { requiresAuth: false } },
+  { path: '/feedback', component: Feedback, meta: { requiresAuth: true, title: 'Feedback' } },
+  { path: '/about-tracker', component: AboutTracker, meta: { requiresAuth: true, title: 'About' } },
+  {
+    path: '/login',
+    component: Login,
+    meta: {
+      requiresAuth: false,
+      fullTitle: 'DrinkTracker: free app to track your drinking and cut down',
+    },
+  },
   // Privacy notice (T-0609): open to everyone, linked from sign-in, Me and the consent banner
-  { path: '/privacy', component: PrivacyView, meta: { requiresAuth: false } },
+  {
+    path: '/privacy',
+    component: PrivacyView,
+    meta: {
+      requiresAuth: false,
+      title: 'Privacy',
+      description:
+        'What DrinkTracker stores, where it is kept, and what the AI coach and Google Analytics receive (only after you say yes). No ads, nothing sold.',
+    },
+  },
 ]
 
 const router = createRouter({
@@ -62,6 +82,11 @@ router.beforeEach(async (to, from, next) => {
   if (!userStore.user) userStore.setUser(user)
 
   next()
+})
+
+// After every route change: this page's title, description and canonical link
+router.afterEach(to => {
+  applyPageMeta(to)
 })
 
 export default router

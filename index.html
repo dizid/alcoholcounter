@@ -4,45 +4,55 @@
     <!-- Google Analytics loads only after consent: src/lib/analytics.js (T-0609) -->
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DrinkTracker - Track & Reduce Your Alcohol Intake</title>
-    <meta name="description" content="DrinkTracker helps you monitor and reduce your alcohol consumption with daily logging, weekly goals, streaks, and personalized insights. Free and private." />
-    <link rel="canonical" href="https://alcohol.dizid.com/" />
+    <title>DrinkTracker: free app to track your drinking and cut down</title>
+    <meta name="description" content="Free, private app to track your drinking and cut down: log a drink in one tap, set a daily and weekly limit, count alcohol-free days and see your patterns." />
+    <!-- No canonical link here on purpose: src/lib/pageMeta.js sets one per page (T-0636).
+         Google's advice when JavaScript sets the canonical is to leave it out of the HTML. -->
     <meta name="theme-color" content="#12100E" />
     <meta name="robots" content="index, follow" />
 
-    <!-- Open Graph / Facebook -->
+    <!-- Open Graph / Facebook (link previews don't run JavaScript, so these describe the site) -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://alcohol.dizid.com/" />
-    <meta property="og:title" content="DrinkTracker - Track & Reduce Your Alcohol Intake" />
-    <meta property="og:description" content="Monitor your drinking habits, set weekly goals, and build healthier streaks. Free, private alcohol tracking app." />
+    <meta property="og:title" content="DrinkTracker: free app to track your drinking and cut down" />
+    <meta property="og:description" content="Log a drink in one tap, set a daily and weekly limit, count alcohol-free days and see your patterns. Free, private, no ads." />
     <meta property="og:site_name" content="DrinkTracker" />
 
     <!-- Twitter -->
     <meta name="twitter:card" content="summary" />
-    <meta name="twitter:title" content="DrinkTracker - Track & Reduce Your Alcohol Intake" />
-    <meta name="twitter:description" content="Monitor your drinking habits, set weekly goals, and build healthier streaks. Free, private alcohol tracking app." />
+    <meta name="twitter:title" content="DrinkTracker: free app to track your drinking and cut down" />
+    <meta name="twitter:description" content="Log a drink in one tap, set a daily and weekly limit, count alcohol-free days and see your patterns. Free, private, no ads." />
 
-    <!-- JSON-LD Structured Data -->
+    <!-- JSON-LD Structured Data: keep featureList true to what the app does (checked Nov 20 2026) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
       "name": "DrinkTracker",
-      "url": "https://alcohol.dizid.com",
-      "description": "Track and reduce your alcohol consumption with daily logging, weekly goals, streaks, and personalized insights.",
+      "url": "https://alcohol.dizid.com/",
+      "description": "Free, private web app to track your drinking and cut down: one-tap logging in standard drinks, daily and weekly limits, alcohol-free days and week, month and year insights.",
       "applicationCategory": "HealthApplication",
       "operatingSystem": "Web",
+      "isAccessibleForFree": true,
       "offers": {
         "@type": "Offer",
         "price": "0",
-        "priceCurrency": "USD"
+        "priceCurrency": "EUR"
+      },
+      "creator": {
+        "@type": "Organization",
+        "name": "Dizid Web Development",
+        "url": "https://dizid.com"
       },
       "featureList": [
-        "Daily drink logging",
-        "Weekly consumption goals",
-        "Streak tracking",
-        "Dashboard with insights",
-        "Support tools"
+        "One-tap drink logging in standard drinks",
+        "Daily and weekly drink limits",
+        "Goal for alcohol-free days per week",
+        "Week, month and year insights",
+        "Optional trigger, mood and note per drink",
+        "Breathing and urge-surfing exercises",
+        "Optional AI coach that asks before sending anything",
+        "Export your data as CSV"
       ]
     }
     </script>

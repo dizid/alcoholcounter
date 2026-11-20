@@ -1,18 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!-- Only the public pages (T-0636, Nov 20 2026). "/" and the app screens need a sign-in
+     and send visitors to /login, so they are not listed. -->
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://alcohol.dizid.com/</loc>
-    <changefreq>daily</changefreq>
-    <priority>1.0</priority>
-  </url>
-  <url>
     <loc>https://alcohol.dizid.com/login</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
+    <lastmod>2026-11-20</lastmod>
   </url>
   <url>
-    <loc>https://alcohol.dizid.com/about-tracker</loc>
-    <changefreq>monthly</changefreq>
-    <priority>0.6</priority>
+    <loc>https://alcohol.dizid.com/privacy</loc>
+    <lastmod>2026-11-17</lastmod>
   </url>
 </urlset>

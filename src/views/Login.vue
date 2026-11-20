@@ -2,7 +2,15 @@
 <template>
   <div class="container">
     <h1>DrinkTracker</h1>
-    <p>Sign in to start tracking.</p>
+    <!-- T-0636: this is the first page every visitor sees, so say what the app does
+         (text only, facts checked against the app Nov 20 2026) -->
+    <p class="lead">See how much you really drink, and drink less. Free, private, no ads.</p>
+    <ul class="points">
+      <li>Log a beer, wine or spirit in one tap, counted in standard drinks.</li>
+      <li>Set a daily and weekly limit and a goal for alcohol-free days.</li>
+      <li>See your week, month and year, and your most common triggers.</li>
+      <li>Optional AI coach, only after your OK.</li>
+    </ul>
 
     <!-- Warning message for session expiry -->
     <div v-if="redirectMessage" class="warning-message" role="alert">
@@ -72,6 +80,14 @@ async function handleGoogleLogin() {
 .container { min-height: 100vh; align-content: center; padding-bottom: 48px; }
 h1 { font-size: 32px; }
 .container > p { color: var(--muted); }
+.container > p.lead { color: var(--ink); font-size: 18px; }
+/* What the app does: plain list, a small sand dot per line */
+.points { list-style: none; display: grid; gap: 6px; color: var(--muted); font-size: 15px; }
+.points li { position: relative; padding-left: 18px; }
+.points li::before {
+  content: ''; position: absolute; left: 2px; top: .6em;
+  width: 6px; height: 6px; border-radius: 50%; background: var(--drink);
+}
 .google-button {
   height: 52px; width: 100%; border-radius: 14px;
   background-color: var(--ink);
