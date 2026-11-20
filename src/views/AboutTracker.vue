@@ -43,8 +43,9 @@
             <img src="@/assets/logo.png" alt="DrinkTracker Logo" class="logo-image" />
           </router-link>
         </div>
-        <h3>Privacy Policy</h3>
-        <p>Your privacy is important to us. We will never share your information with anyone. We only use your data to improve your experience. By using our service, you agree to this simple policy. If you have any questions, feel free to contact us.</p>
+        <h3>Privacy</h3>
+        <!-- T-0636: the old one-line policy here contradicted the real notice; point to it instead -->
+        <p>What we store, where it is kept and what the coach and Google Analytics get (only after your OK): see the <router-link to="/privacy">privacy page</router-link>.</p>
       </div>
     </section>
     
@@ -117,30 +118,30 @@ function toggleSubmenu() {
 
 // Define the brief explanation as raw Markdown (shortened to ~100 words)
 const briefExplanation = `
-DrinkTracker is a mobile and web app to help you moderate alcohol use with evidence-based tools. Track drinks daily, view progress charts, and use mindfulness and CBT exercises to manage urges. Grok AI provides personalized advice based on your data, enhancing engagement. **Why it works**: CBT rewires negative thoughts, and Mindfulness-Based Relapse Prevention (MBRP) reduces cravings, proven to lower drinking. **Best use**: Log drinks daily, use exercises during urges, and review AI insights weekly for 8-12 weeks. Secure, free to start, and ideal for recovery or moderation.
+DrinkTracker is a web app (on your phone or computer) to help you moderate alcohol use with evidence-based tools. Track drinks daily, view progress charts, and use mindfulness and CBT exercises to manage urges. An optional AI coach (Grok) gives personalized advice based on your numbers, only after your OK. **Why it works**: CBT rewires negative thoughts, and Mindfulness-Based Relapse Prevention (MBRP) reduces cravings, proven to lower drinking. **Best use**: Log drinks daily, use exercises during urges, and review your Insights weekly for 8-12 weeks. Free, private, and ideal for recovery or moderation.
 `
 
 // Define the long explanation as raw Markdown (shortened to ~300 words)
 const longExplanation = `
 ### Why DrinkTracker Works
 
-DrinkTracker empowers users to manage alcohol use through a blend of science-backed tools and AI, available on web, iOS, and Android. Built by Marc from Rotterdam, it’s a supportive companion for moderation or recovery.
+DrinkTracker empowers users to manage alcohol use through a blend of science-backed tools and AI. It runs in your browser on any phone or computer. Built by Marc from Rotterdam, it’s a supportive companion for moderation or recovery.
 
 #### Science-Backed Approach
 - **Cognitive Behavioral Therapy (CBT)**: CBT helps you identify triggers (e.g., stress), reframe thoughts (like "I need a drink" to "I can relax differently"), and build skills for high-risk situations. Studies show CBT reduces drinking by fostering coping strategies, with digital tools boosting abstinence.
 - **Mindfulness-Based Relapse Prevention (MBRP)**: Exercises like breathing, acceptance, and urge surfing help you manage cravings by staying present. Research confirms MBRP lowers heavy drinking and relapse risk, enhancing emotional control.
-- **Personalized AI Advice**: Grok AI analyzes your drink logs, contexts, and triggers to suggest tailored CBT and mindfulness strategies (e.g., breathing for stress). Digital therapeutics with AI improve outcomes by personalizing interventions, reducing cravings and risky drinking, per a Frontiers study.
+- **Personalized AI Advice** (optional, asks your OK first): Grok AI looks at your drinks per day and how often you logged each mood, place and trigger to suggest tailored CBT and mindfulness strategies (e.g., breathing for stress). Digital therapeutics with AI improve outcomes by personalizing interventions, reducing cravings and risky drinking, per a Frontiers study.
 
 This combination excels because self-monitoring builds awareness, CBT equips skills, mindfulness fosters calm, and AI ensures relevance, outperforming single-method approaches.
 
 #### How to Use It
 1. **Start**: Sign up and log drinks with context (e.g., mood, location) for a week.
-2. **Engage**: Use the "Mindful Pause" for breathing or urge surfing, and CBT to log triggers and reframe thoughts.
-3. **Review**: Check the dashboard for charts and AI advice weekly. Practice suggested skills (e.g., refusal techniques).
+2. **Engage**: Use the exercises at the bottom of Today: breathing or urge surfing, and the CBT tools to note triggers and reframe thoughts.
+3. **Review**: Check Insights for your week, month and year, and ask the coach if you like. Practice suggested skills (e.g., refusal techniques).
 4. **Stay Consistent**: Use for 8-12 weeks for best results, combining with professional support if needed.
 
 #### Why It Stands Out
-Unlike generic trackers, this app offers a therapeutic ecosystem. It’s secure, user-friendly, and affordable (free tier available). Start today to take control of your habits with confidence.
+Unlike generic trackers, this app offers a therapeutic ecosystem. It’s private, user-friendly and free. Start today to take control of your habits with confidence.
 `
 
 // Parse Markdown for rendering
