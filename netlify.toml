@@ -2,3 +2,25 @@
   functions = "netlify/functions"
   command = "npm run build" # Adjust if your build command differs (e.g., 'vite build')
   publish = "dist" # Adjust if your Vite output directory differs
+
+# Security headers (T-0636, Nov 20 2026). The site had none besides HSTS.
+# X-Frame-Options/frame-ancestors: no other site may frame the app (clickjacking).
+# Permissions-Policy: the app uses no camera, microphone or location.
+# Content policy in REPORT-ONLY mode: nothing is blocked yet; browsers send violations
+# to /api/csp-report (Netlify function log). Enforce later by renaming the header to
+# Content-Security-Policy once the log stays clean. What it allows:
+# - script-src: own files, Google Analytics (loaded only after consent, src/lib/analytics.js)
+#   and apis.google.com (Firebase's Google sign-in popup helper)
+# - connect-src: Firebase Auth (identitytoolkit/securetoken) and Google Analytics
+# - frame-src: Firebase's auth iframe on the project's authDomain
+# - img-src: any https image (Google profile pictures)
+# There are no inline scripts (the JSON-LD block is data, CSP doesn't apply to it):
+# `node scripts/csp-hash.mjs` after a build checks that.
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=()"
+    Content-Security-Policy-Report-Only = "default-src 'self'; script-src 'self' https://www.googletagmanager.com https://apis.google.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com; frame-src https://alcoholcounter-143f5.firebaseapp.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; report-uri /api/csp-report"
