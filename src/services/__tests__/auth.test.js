@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 // Use vi.hoisted to declare mocks before vi.mock hoisting
 const {
   mockLoginWithGoogle,
+  mockPrepareGoogleSignIn,
   mockLogout,
   mockOnAuthStateChanged,
   mockAuthObj,
@@ -12,6 +13,7 @@ const {
   const mockCurrentUser = { uid: 'test-uid', email: 'test@example.com' }
   return {
     mockLoginWithGoogle: vi.fn(),
+    mockPrepareGoogleSignIn: vi.fn(),
     mockLogout: vi.fn(),
     mockOnAuthStateChanged: vi.fn(() => vi.fn()),
     mockAuthObj: { currentUser: mockCurrentUser },
@@ -21,6 +23,7 @@ const {
 
 vi.mock('../../firebase', () => ({
   loginWithGoogle: mockLoginWithGoogle,
+  prepareGoogleSignIn: mockPrepareGoogleSignIn,
   logout: mockLogout,
   auth: mockAuthObj,
 }))
@@ -29,7 +32,7 @@ vi.mock('firebase/auth', () => ({
   onAuthStateChanged: mockOnAuthStateChanged,
 }))
 
-import { loginWithProvider, logout, onAuthChange, getCurrentUser } from '../auth.js'
+import { loginWithProvider, prepareSignIn, logout, onAuthChange, getCurrentUser } from '../auth.js'
 
 describe('auth service', () => {
   beforeEach(() => {
@@ -48,6 +51,13 @@ describe('auth service', () => {
     it('should propagate errors from Firebase', async () => {
       mockLoginWithGoogle.mockRejectedValueOnce(new Error('Popup closed'))
       await expect(loginWithProvider()).rejects.toThrow('Popup closed')
+    })
+  })
+
+  describe('prepareSignIn', () => {
+    it('should load the Google popup helper ahead of the tap', () => {
+      prepareSignIn()
+      expect(mockPrepareGoogleSignIn).toHaveBeenCalledTimes(1)
     })
   })
 

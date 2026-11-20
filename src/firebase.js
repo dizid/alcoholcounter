@@ -1,5 +1,14 @@
 import { initializeApp } from 'firebase/app'
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut } from 'firebase/auth'
+import {
+  initializeAuth,
+  indexedDBLocalPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signOut,
+} from 'firebase/auth'
+import { SignInPageResolver, warmUpSignIn } from './lib/signInResolver'
 
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
@@ -8,8 +17,20 @@ const firebaseConfig = {
 }
 
 export const app = initializeApp(firebaseConfig)
-export const auth = getAuth(app)
+
+// Same persistence list as getAuth(), so existing sessions stay signed in. The popup
+// helper loads on the sign-in page instead of at startup (T-0636, see signInResolver.js).
+export const auth = initializeAuth(app, {
+  persistence: [indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence],
+  popupRedirectResolver: SignInPageResolver,
+})
+
 export const googleProvider = new GoogleAuthProvider()
+
+// Called by the sign-in page once it is drawn
+export function prepareGoogleSignIn() {
+  warmUpSignIn(auth)
+}
 
 export async function loginWithGoogle() {
   await signInWithPopup(auth, googleProvider)

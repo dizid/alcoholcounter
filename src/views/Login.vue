@@ -40,9 +40,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { loginWithProvider } from '../services/auth'
+import { loginWithProvider, prepareSignIn } from '../services/auth'
 
 const router = useRouter()
 const route = useRoute()
@@ -50,6 +50,8 @@ const error = ref('')
 const isLoading = ref(false)
 const redirectMessage = ref('')
 const redirectPath = ref('/')
+let warmUpFrame = 0
+let warmUpTimer = 0
 
 onMounted(() => {
   if (route.query.error === 'session_expired') {
@@ -58,6 +60,16 @@ onMounted(() => {
   if (route.query.redirect) {
     redirectPath.value = route.query.redirect
   }
+  // T-0636: load Google's sign-in helper right after this page is drawn (not at app
+  // start), so the page shows sooner and the popup is ready before the tap
+  warmUpFrame = requestAnimationFrame(() => {
+    warmUpTimer = setTimeout(prepareSignIn, 0)
+  })
+})
+
+onBeforeUnmount(() => {
+  cancelAnimationFrame(warmUpFrame)
+  clearTimeout(warmUpTimer)
 })
 
 async function handleGoogleLogin() {

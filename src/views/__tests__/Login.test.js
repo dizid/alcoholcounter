@@ -1,18 +1,23 @@
 // Tests for Login view (Google Sign-In only)
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { mount, flushPromises } from '@vue/test-utils'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { mount, flushPromises, enableAutoUnmount } from '@vue/test-utils'
 import { createPinia, setActivePinia } from 'pinia'
 import { createRouter, createMemoryHistory } from 'vue-router'
 import Login from '../Login.vue'
 
 // Use vi.hoisted to avoid initialization order issues
-const { mockLoginWithProvider } = vi.hoisted(() => ({
+const { mockLoginWithProvider, mockPrepareSignIn } = vi.hoisted(() => ({
   mockLoginWithProvider: vi.fn(),
+  mockPrepareSignIn: vi.fn(),
 }))
 
 vi.mock('../../services/auth', () => ({
   loginWithProvider: mockLoginWithProvider,
+  prepareSignIn: mockPrepareSignIn,
 }))
+
+// Unmount after each test so no earlier page's pending sign-in warm-up fires later
+enableAutoUnmount(afterEach)
 
 const createMockRouter = () => {
   return createRouter({
@@ -82,6 +87,19 @@ describe('Login view', () => {
   })
 
   describe('Google login', () => {
+    // T-0636: the popup helper loads after the page is drawn, not during mount
+    it('should prepare Google sign-in after the page is drawn', async () => {
+      vi.useFakeTimers()
+      try {
+        await mountLogin()
+        expect(mockPrepareSignIn).not.toHaveBeenCalled()
+        await vi.runAllTimersAsync() // the animation frame, then the timeout
+        expect(mockPrepareSignIn).toHaveBeenCalledTimes(1)
+      } finally {
+        vi.useRealTimers()
+      }
+    })
+
     it('should call loginWithProvider on button click', async () => {
       const wrapper = await mountLogin()
       await wrapper.find('.google-button').trigger('click')

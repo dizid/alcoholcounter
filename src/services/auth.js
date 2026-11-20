@@ -1,11 +1,21 @@
 // Authentication service — Firebase Auth (Google only)
 
-import { loginWithGoogle as fbLoginWithGoogle, logout as fbLogout, auth } from '../firebase'
+import {
+  loginWithGoogle as fbLoginWithGoogle,
+  prepareGoogleSignIn,
+  logout as fbLogout,
+  auth,
+} from '../firebase'
 import { onAuthStateChanged } from 'firebase/auth'
 
 // Google Sign-In via popup
 export async function loginWithProvider() {
   await fbLoginWithGoogle()
+}
+
+// Loads Google's popup helper before the user taps (sign-in page only, T-0636)
+export function prepareSignIn() {
+  prepareGoogleSignIn()
 }
 
 // Sign out

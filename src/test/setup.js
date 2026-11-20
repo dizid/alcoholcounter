@@ -20,6 +20,7 @@ vi.mock('../firebase', () => ({
   auth: mockAuth,
   googleProvider: mockGoogleProvider,
   loginWithGoogle: vi.fn().mockResolvedValue(),
+  prepareGoogleSignIn: vi.fn(),
   logout: vi.fn().mockResolvedValue(),
   getIdToken: vi.fn().mockResolvedValue('mock-firebase-token'),
 }))
