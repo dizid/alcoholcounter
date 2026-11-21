@@ -2,6 +2,10 @@
 import { verifyFirebaseToken, json, preflight } from './lib/auth.mjs'
 import { getDb } from './lib/db.mjs'
 
+// The badge ids of src/components/Achievements.vue (T-0636 security pass: before,
+// any text of any length was stored, and the same badge could be stored many times).
+export const ACHIEVEMENT_TYPES = ['first_week', 'goal_keeper', 'mindful_moment', 'self_aware', 'streak_master', 'month_strong']
+
 export const handler = async (event) => {
   if (event.httpMethod === 'OPTIONS') return preflight()
 
@@ -24,13 +28,18 @@ export const handler = async (event) => {
     if (event.httpMethod === 'POST') {
       const body = JSON.parse(event.body || '{}')
       const { achievement_type } = body
-      if (!achievement_type) return json({ error: 'achievement_type required' }, 400)
+      if (!ACHIEVEMENT_TYPES.includes(achievement_type)) return json({ error: 'unknown achievement_type' }, 400)
 
+      // Store a badge once per user (the table has no unique index, so check here)
       const [row] = await sql`
         INSERT INTO achievements (user_id, achievement_type)
-        VALUES (${userId}, ${achievement_type})
-        RETURNING *
+        SELECT ${userId}, ${achievement_type}
+        WHERE NOT EXISTS (
+          SELECT 1 FROM achievements WHERE user_id = ${userId} AND achievement_type = ${achievement_type}
+        )
+        RETURNING id, achievement_type, unlocked_at
       `
+      if (!row) return json({ ok: true, already: true })
       return json(row, 201)
     }
 
