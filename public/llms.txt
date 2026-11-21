@@ -1,0 +1,14 @@
+# DrinkTracker
+
+> Free, private web app to track your drinking and cut down. Log a beer, wine or spirit in one tap, counted in standard drinks; set a daily and weekly limit and a goal for alcohol-free days; see your week, month and year. No ads, nothing sold. Made by Dizid Web Development (Netherlands).
+
+DrinkTracker runs in the browser (no app store app). Sign-in is with a Google account. Features: one-tap logging in standard drinks, daily and weekly limits, alcohol-free days, week/month/year insights, an optional trigger, mood and note per drink, breathing and urge-surfing exercises, CSV export, and an optional AI coach that asks your OK before sending anything.
+
+## Pages
+
+- [Start and sign in](https://alcohol.dizid.com/login): what the app does, sign in with Google
+- [Privacy](https://alcohol.dizid.com/privacy): what is stored, where (Neon database in Singapore), and what the AI coach and Google Analytics receive (only after you say yes)
+
+## Maker
+
+- [Dizid Web Development](https://dizid.com): Marc de Ruijter, contact marc@dizid.com

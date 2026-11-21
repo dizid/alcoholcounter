@@ -1,1 +1,14 @@
-/* /index.html   200
+# App fallback, only for the app's own routes (src/router.js) (T-0636, Nov 21 2026).
+# "/" is index.html itself. Every other address that has no file gets dist/404.html
+# with a real 404 status (Netlify serves it automatically; made by scripts/make-404.mjs),
+# so search engines don't index junk URLs (/wp-login.php, typos) as copies of the app.
+# A NEW ROUTE needs a line here too, or a hard refresh on it shows "Page not found".
+# Netlify functions (/.netlify/functions/*, /api/csp-report) don't use these rules.
+/log            /index.html   200
+/insights       /index.html   200
+/me             /index.html   200
+/dashboard      /index.html   200
+/feedback       /index.html   200
+/about-tracker  /index.html   200
+/login          /index.html   200
+/privacy        /index.html   200

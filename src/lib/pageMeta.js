@@ -31,6 +31,8 @@ function upsertTag(doc, selector, tagName, attributes) {
 
 // Applies the route's title, description and canonical URL to the document.
 // The canonical is the path without query string or hash (/login?redirect=/ → /login).
+// meta.noindex (the not-found route, T-0636 Nov 21 2026): robots "noindex" and no
+// canonical, so an unknown address never claims to be a real page.
 export function applyPageMeta(route, doc = document) {
   const meta = route.meta || {}
   const title = pageTitle(meta)
@@ -39,7 +41,12 @@ export function applyPageMeta(route, doc = document) {
 
   doc.title = title
   upsertTag(doc, 'meta[name="description"]', 'meta', { name: 'description', content: description })
-  upsertTag(doc, 'link[rel="canonical"]', 'link', { rel: 'canonical', href: url })
+  upsertTag(doc, 'meta[name="robots"]', 'meta', { name: 'robots', content: meta.noindex ? 'noindex' : 'index, follow' })
+  if (meta.noindex) {
+    doc.head.querySelector('link[rel="canonical"]')?.remove()
+  } else {
+    upsertTag(doc, 'link[rel="canonical"]', 'link', { rel: 'canonical', href: url })
+  }
   upsertTag(doc, 'meta[property="og:url"]', 'meta', { property: 'og:url', content: url })
   upsertTag(doc, 'meta[property="og:title"]', 'meta', { property: 'og:title', content: title })
   upsertTag(doc, 'meta[property="og:description"]', 'meta', { property: 'og:description', content: description })

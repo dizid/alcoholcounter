@@ -14,6 +14,7 @@ const Feedback = () => import('./views/Feedback.vue')
 const Login = () => import('./views/Login.vue')
 const AboutTracker = () => import('./views/AboutTracker.vue')
 const PrivacyView = () => import('./views/PrivacyView.vue')
+const NotFoundView = () => import('./views/NotFoundView.vue')
 
 // meta.title / meta.fullTitle / meta.description feed the tab title and search
 // snippet (src/lib/pageMeta.js). Only /login and /privacy are public, so only those
@@ -45,6 +46,14 @@ const routes = [
       description:
         'What DrinkTracker stores, where it is kept, and what the AI coach and Google Analytics receive (only after you say yes). No ads, nothing sold.',
     },
+  },
+  // Any other address (T-0636, Nov 21 2026): "Page not found" instead of a blank page.
+  // Netlify serves these with HTTP 404 (public/_redirects only lists the routes above).
+  // A NEW ROUTE needs a line in public/_redirects too, or a hard refresh on it gives a 404.
+  {
+    path: '/:pathMatch(.*)*',
+    component: NotFoundView,
+    meta: { requiresAuth: false, title: 'Page not found', noindex: true },
   },
 ]
 

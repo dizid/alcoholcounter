@@ -24,6 +24,7 @@ dist-ssr
 *.sw?
 *.txt
 !public/robots.txt
+!public/llms.txt
 
 # Local Netlify folder
 .netlify

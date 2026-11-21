@@ -42,4 +42,21 @@ describe('applyPageMeta', () => {
     expect(links).toHaveLength(1)
     expect(links[0].href).toBe(`${SITE_ORIGIN}/privacy`)
   })
+
+  // T-0636 (Nov 21 2026): the not-found route must not look like a real page
+  it('a noindex route gets robots noindex and no canonical', () => {
+    applyPageMeta({ path: '/login', meta: {} })
+    applyPageMeta({ path: '/wp-login.php', meta: { title: 'Page not found', noindex: true } })
+    expect(document.title).toBe('Page not found | DrinkTracker')
+    expect(document.querySelector('meta[name="robots"]').content).toBe('noindex')
+    expect(document.querySelector('link[rel="canonical"]')).toBeNull()
+  })
+
+  it('a real page after a not-found page is indexable again with its canonical', () => {
+    applyPageMeta({ path: '/junk', meta: { noindex: true } })
+    applyPageMeta({ path: '/privacy', meta: { title: 'Privacy' } })
+    expect(document.querySelector('meta[name="robots"]').content).toBe('index, follow')
+    expect(document.querySelectorAll('meta[name="robots"]')).toHaveLength(1)
+    expect(document.querySelector('link[rel="canonical"]').href).toBe(`${SITE_ORIGIN}/privacy`)
+  })
 })
