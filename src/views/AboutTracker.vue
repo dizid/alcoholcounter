@@ -66,15 +66,15 @@
             <td><a href="https://bmcmedicine.biomedcentral.com/articles/10.1186/s12916-022-02374-5" target="_blank" rel="noopener noreferrer">View Study</a></td>
           </tr>
           <tr>
-            <td>RCT demonstrating that a full smartphone app for tracking alcohol reduced typical weekly consumption more than an educational-only version, with supportive evidence for reducing unhealthy drinking.</td>
+            <td>RCT (761 Canadian adults) where the full smartphone app reduced typical weekly drinking more than an education-only version of the same app after six months; no clear difference in heavy drinking days.</td>
             <td><a href="https://www.sciencedirect.com/science/article/pii/S221478292400040X" target="_blank" rel="noopener noreferrer">View Study</a></td>
           </tr>
           <tr>
-            <td>Randomized trial of the Drink Less app, where sensitivity analysis showed a greater reduction in weekly alcohol units compared to standard NHS advice, highlighting the role of tracking in behavior change.</td>
+            <td>Randomized trial of the Drink Less app (5,602 UK drinkers) against the NHS alcohol advice webpage: the main analysis found no clear difference; the planned sensitivity analysis found a weekly drop 2 units bigger with the app after six months.</td>
             <td><a href="https://www.sciencedirect.com/science/article/pii/S2589537024001135" target="_blank" rel="noopener noreferrer">View Study</a></td>
           </tr>
           <tr>
-            <td>Mixed-methods evaluation of the Drinkaware app, finding that self-monitoring led to reduced alcohol consumption, especially in the first week, among motivated high-risk drinkers.</td>
+            <td>Mixed-methods evaluation of the Drinkaware app: people who kept logging reported drinking less, with most of the change in the first week; it helped most for users already motivated to cut down.</td>
             <td><a href="https://bmcpublichealth.biomedcentral.com/articles/10.1186/s12889-017-4358-9" target="_blank" rel="noopener noreferrer">View Study</a></td>
           </tr>
           <tr>
@@ -95,7 +95,7 @@
       <p>Explore these trusted resources for additional support in managing alcohol use and improving mental health.</p>
       <ul class="resources-list">
         <li><a href="https://www.aa.org/" target="_blank" rel="noopener noreferrer">Alcoholics Anonymous (AA)</a> - Find local or virtual support groups for recovery.</li>
-        <li><a href="https://www.samhsa.gov/find-help/national-helpline" target="_blank" rel="noopener noreferrer">SAMHSA National Helpline</a> - Free, confidential 24/7 support at 1-800-662-HELP (4357).</li>
+        <li><a href="https://www.samhsa.gov/find-help/helplines/national-helpline" target="_blank" rel="noopener noreferrer">SAMHSA National Helpline</a> - Free, confidential 24/7 support at 1-800-662-HELP (4357).</li>
         <li><a href="https://www.smartrecovery.org/" target="_blank" rel="noopener noreferrer">SMART Recovery</a> - Science-based, self-empowered recovery programs with online meetings.</li>
         <li><a href="https://www.headspace.com/" target="_blank" rel="noopener noreferrer">Headspace</a> - Guided mindfulness and meditation app to reduce stress and cravings.</li>
         <li><a href="https://www.niaaa.nih.gov/" target="_blank" rel="noopener noreferrer">NIAAA</a> - Research and resources on alcohol use disorder from the National Institute on Alcohol Abuse and Alcoholism.</li>
@@ -130,9 +130,9 @@ DrinkTracker empowers users to manage alcohol use through a blend of science-bac
 #### Science-Backed Approach
 - **Cognitive Behavioral Therapy (CBT)**: CBT helps you identify triggers (e.g., stress), reframe thoughts (like "I need a drink" to "I can relax differently"), and build skills for high-risk situations. Studies show CBT reduces drinking by fostering coping strategies, with digital tools boosting abstinence.
 - **Mindfulness-Based Relapse Prevention (MBRP)**: Exercises like breathing, acceptance, and urge surfing help you manage cravings by staying present. Research confirms MBRP lowers heavy drinking and relapse risk, enhancing emotional control.
-- **Personalized AI Advice** (optional, asks your OK first): Grok AI looks at your drinks per day and how often you logged each mood, place and trigger to suggest tailored CBT and mindfulness strategies (e.g., breathing for stress). Digital therapeutics with AI improve outcomes by personalizing interventions, reducing cravings and risky drinking, per a Frontiers study.
+- **Personalized AI Advice** (optional, asks your OK first): Grok AI looks at your drinks per day and how often you logged each mood, place and trigger to suggest tailored CBT and mindfulness strategies (e.g., breathing for stress).
 
-This combination excels because self-monitoring builds awareness, CBT equips skills, mindfulness fosters calm, and AI ensures relevance, outperforming single-method approaches.
+The idea: self-monitoring builds awareness, CBT gives you skills, mindfulness helps you stay calm, and the optional coach keeps tips relevant to your own numbers.
 
 #### How to Use It
 1. **Start**: Sign up and log drinks with context (e.g., mood, location) for a week.

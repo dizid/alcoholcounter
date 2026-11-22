@@ -8,11 +8,14 @@
 // - request size is capped and each data field is trimmed before it goes in the prompt
 // - per-user and global daily caps (lib/aiUsage.mjs), counted before xAI is called
 // - the answer length is capped, and nothing the user sent is logged
+// - T-0636: the user's stored yes to the coach (settings.aiConsentAt, T-0609) is checked
+//   here too, so nothing reaches xAI without it even if the app's own check is skipped
 // Netlify Functions v2 format (default export, Request -> Response): Netlify Blobs'
 // strong-consistency reads, which the counters need, don't work in Lambda-style
 // functions ("environment has not been configured with a 'uncachedEdgeURL'").
 import { verifyFirebaseToken } from './lib/auth.mjs'
 import { claimAiCall, PER_USER_DAILY_CAP } from './lib/aiUsage.mjs'
+import { getDb } from './lib/db.mjs'
 
 // requestType -> key of the answer in the response body (what the app reads)
 const RESPONSE_KEYS = { mainAdvice: 'advice', mindfulnessTip: 'response' }
@@ -31,6 +34,15 @@ const REFUSALS = {
   global_limit: [429, 'AI advice has reached its daily limit. Please try again tomorrow.'],
   busy: [503, 'AI advice is busy right now. Please try again in a moment.'],
   unavailable: [503, 'AI advice is unavailable right now. Please try again later.'],
+  no_consent: [403, 'Please agree to share your numbers with the coach first: reload the page and tap "Ask the coach".'],
+}
+
+// True when the user's settings hold the time of their yes to the coach. api-goals stamps it
+// on "I agree" and clears it when the coach is turned off in Me (T-0609).
+export async function hasAiConsent(userId) {
+  const sql = getDb()
+  const rows = await sql`SELECT settings->>'aiConsentAt' AS consent_at FROM user_goals WHERE user_id = ${userId}`
+  return Boolean(rows[0]?.consent_at)
 }
 
 // JSON of a user data field, cut to MAX_FIELD_CHARS so the prompt stays small.
@@ -112,14 +124,28 @@ export default async (req) => {
     return reply({ error: 'Server configuration error' }, 500)
   }
 
-  // 3. Daily caps, counted before anything is spent
+  // 3. The user's yes to the coach; fails closed when the database can't be read
+  let consented
+  try {
+    consented = await hasAiConsent(userId)
+  } catch (error) {
+    console.error('grok-proxy: consent check failed:', error instanceof Error ? error.message : String(error))
+    const [status, message] = REFUSALS.unavailable
+    return reply({ error: message, reason: 'unavailable' }, status)
+  }
+  if (!consented) {
+    const [status, message] = REFUSALS.no_consent
+    return reply({ error: message, reason: 'no_consent' }, status)
+  }
+
+  // 4. Daily caps, counted before anything is spent
   const claim = await claimAiCall(userId)
   if (claim !== 'ok') {
     const [status, message] = REFUSALS[claim] || REFUSALS.unavailable
     return reply({ error: message, reason: claim }, status)
   }
 
-  // 4. Ask xAI
+  // 5. Ask xAI
   try {
     const response = await fetch('https://api.x.ai/v1/chat/completions', {
       method: 'POST',

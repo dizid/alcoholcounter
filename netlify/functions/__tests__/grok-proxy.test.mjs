@@ -16,6 +16,12 @@ vi.mock('@netlify/blobs', () => ({
   getStore: vi.fn(),
 }))
 
+// T-0636: the consent check reads user_goals.settings; mockSql stands in for the postgres tag
+const mockSql = vi.fn()
+vi.mock('../lib/db.mjs', () => ({
+  getDb: () => mockSql,
+}))
+
 const { default: grokProxy, buildPrompt, MAX_BODY_BYTES } = await import('../grok-proxy.mjs')
 
 // Calls the v2 function and returns { statusCode, body } like the Lambda tests
@@ -46,6 +52,7 @@ describe('grok-proxy handler', () => {
     vi.clearAllMocks()
     mockVerify.mockResolvedValue('user-1')
     mockClaim.mockResolvedValue('ok')
+    mockSql.mockResolvedValue([{ consent_at: '2026-11-17T10:00:00.000Z' }])
     process.env.GROK_API_KEY = 'test-key'
     global.fetch = vi.fn().mockResolvedValue(xaiAnswer('Drink water between drinks.'))
     vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -104,6 +111,36 @@ describe('grok-proxy handler', () => {
     mockClaim.mockResolvedValue('unavailable')
     const res = await handler(makeEvent({ requestType: 'mainAdvice', userData: {} }))
     expect(res.statusCode).toBe(503)
+    expect(global.fetch).not.toHaveBeenCalled()
+  })
+
+  it('refuses users who never agreed to the coach, without counting or calling xAI', async () => {
+    mockSql.mockResolvedValue([{ consent_at: null }])
+    const res = await handler(makeEvent({ requestType: 'mainAdvice', userData: {} }))
+    expect(res.statusCode).toBe(403)
+    expect(JSON.parse(res.body).reason).toBe('no_consent')
+    expect(mockClaim).not.toHaveBeenCalled()
+    expect(global.fetch).not.toHaveBeenCalled()
+  })
+
+  it('refuses users without a settings row (no consent stored)', async () => {
+    mockSql.mockResolvedValue([])
+    const res = await handler(makeEvent({ requestType: 'mainAdvice', userData: {} }))
+    expect(res.statusCode).toBe(403)
+    expect(global.fetch).not.toHaveBeenCalled()
+  })
+
+  it('checks the consent of the signed-in user only', async () => {
+    await handler(makeEvent({ requestType: 'mainAdvice', userData: {} }))
+    expect(mockSql).toHaveBeenCalledTimes(1)
+    expect(mockSql.mock.calls[0].slice(1)).toEqual(['user-1'])
+  })
+
+  it('fails closed when the consent check cannot read the database', async () => {
+    mockSql.mockRejectedValue(new Error('connection refused'))
+    const res = await handler(makeEvent({ requestType: 'mainAdvice', userData: {} }))
+    expect(res.statusCode).toBe(503)
+    expect(mockClaim).not.toHaveBeenCalled()
     expect(global.fetch).not.toHaveBeenCalled()
   })
 
