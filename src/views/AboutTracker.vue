@@ -1,6 +1,7 @@
 <template>
-  <!-- Main container for the About Tracker page -->
-  <div class="main-container">
+  <!-- Main container for the About Tracker page. T-0636: "screen" = the side padding and the room
+       above the bottom menu every other screen has (its old padding was in the unloaded styles.css) -->
+  <div class="main-container screen">
     <h1>About DrinkTracker</h1>
     <p>Learn how our app empowers you to moderate alcohol use with science-backed tools and AI advice.</p>
     
@@ -240,6 +241,29 @@ function scrollToSection(id) {
 .logo-link {
   display: inline-block;
   transition: transform 0.2s ease;
+}
+
+/* T-0636: the logo's size lived in assets/styles.css, which stopped loading with the redesign
+   (T-0588). Without it the 1024 px logo made this page 1024 px wide and scroll sideways on
+   phones. Same sizes as the old rule: max 200 px tall, 150 px on phones. */
+.logo-container {
+  margin-top: 1.5rem;
+  text-align: center;
+}
+
+.logo-image {
+  display: block;
+  width: auto;
+  max-width: 100%;
+  height: auto;
+  max-height: 200px;
+  border-radius: 12px;
+}
+
+@media (max-width: 768px) {
+  .logo-image {
+    max-height: 150px;
+  }
 }
 
 .logo-link:hover {
