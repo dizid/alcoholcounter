@@ -142,5 +142,6 @@ onMounted(async () => {
 .s.good { color: var(--free); }
 .tips { list-style: none; display: grid; gap: 12px; }
 .tips li { display: flex; gap: 12px; font-size: 16px; line-height: 1.5; }
-.tips .n { color: var(--drink); font-size: 18px; line-height: 1.4; }
+/* Fixed-width number column, so every point's text starts on the same line ("1" is narrower than "2") */
+.tips .n { color: var(--drink); font-size: 18px; line-height: 1.4; flex: none; min-width: 14px; text-align: center; }
 </style>

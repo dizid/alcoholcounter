@@ -12,7 +12,9 @@
 # - script-src: own files, Google Analytics (loaded only after consent, src/lib/analytics.js)
 #   and apis.google.com (Firebase's Google sign-in popup helper)
 # - connect-src: Firebase Auth (identitytoolkit/securetoken) and Google Analytics
-# - frame-src: Firebase's auth iframe on the project's authDomain
+# - frame-src: Firebase's auth iframe on the project's authDomain, and docs.google.com
+#   (the Google Form embedded on /feedback; missing until Nov 22 2026, found by the
+#   T-0636 phone check: enforcing the policy without it would have blanked that form)
 # - img-src: any https image (Google profile pictures)
 # There are no inline scripts (the JSON-LD block is data, CSP doesn't apply to it):
 # `node scripts/csp-hash.mjs` after a build checks that.
@@ -23,4 +25,4 @@
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
-    Content-Security-Policy-Report-Only = "default-src 'self'; script-src 'self' https://www.googletagmanager.com https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com; frame-src https://alcoholcounter-143f5.firebaseapp.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; report-uri /api/csp-report"
+    Content-Security-Policy-Report-Only = "default-src 'self'; script-src 'self' https://www.googletagmanager.com https://apis.google.com; style-src 'self' 'unsafe-inline'; font-src 'self'; img-src 'self' data: https:; connect-src 'self' https://identitytoolkit.googleapis.com https://securetoken.googleapis.com https://www.googleapis.com https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com; frame-src https://alcoholcounter-143f5.firebaseapp.com https://docs.google.com; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'; report-uri /api/csp-report"

@@ -109,7 +109,9 @@
 </template>
 
 <style scoped>
-.back { display: inline-block; margin-bottom: 12px; font-size: 14px; color: var(--muted); }
+/* 4 px padding makes the tap area 29 px tall (WCAG 2.5.8 asks 24); the negative top margin
+   and smaller bottom margin keep the text exactly where it was */
+.back { display: inline-block; padding: 4px 0; margin: -4px 0 8px; font-size: 14px; color: var(--muted); }
 .privacy h1 { margin: 0 0 4px; }
 .privacy section { margin-bottom: 24px; }
 .privacy h2 { font-size: 17px; font-weight: 600; margin: 0 0 8px; }

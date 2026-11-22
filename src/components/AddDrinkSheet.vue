@@ -27,7 +27,7 @@
               role="radio" :aria-checked="form.size === s.size" @click="form.size = s.size"
             >{{ s.label }}</button>
           </div>
-          <div class="std">= <b>{{ formatStd(totalStd) }}</b> standard drinks</div>
+          <div class="std">= <b>{{ formatStd(totalStd) }}</b> {{ stdWord }}</div>
 
           <div class="rows">
             <div v-if="!editing" class="line-row">
@@ -104,6 +104,8 @@ const error = ref('')
 
 const editing = computed(() => Boolean(props.drink))
 const totalStd = computed(() => stdFor(form.type, form.size) * form.count)
+// "= 1 standard drink" / "= 1.2 standard drinks"
+const stdWord = computed(() => (formatStd(totalStd.value) === '1' ? 'standard drink' : 'standard drinks'))
 
 // "YYYY-MM-DDTHH:mm" in the phone's local time, for <input type="datetime-local">
 function toLocalInput(date) {

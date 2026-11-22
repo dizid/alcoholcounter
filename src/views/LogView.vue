@@ -224,6 +224,9 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
 </script>
 
 <style scoped>
+/* Room for the floating "Add drink" button (16 px gap + 48 px button + 16 px) above the
+   bottom nav, so the last entry can always scroll clear of it (the shared .screen leaves 24 px) */
+.screen { padding-bottom: calc(var(--nav-h) + var(--safe) + 80px); }
 .strip { display: flex; gap: 6px; margin: 0 -20px 24px; padding: 0 20px; overflow-x: auto; scrollbar-width: none; }
 .strip::-webkit-scrollbar { display: none; }
 .d {
