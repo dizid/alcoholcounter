@@ -4,6 +4,7 @@
 <template>
   <aside
     v-if="visible"
+    ref="bannerEl"
     class="consent card"
     :class="{ 'above-nav': aboveNav }"
     role="region"
@@ -21,7 +22,7 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, onMounted, onBeforeUnmount } from 'vue'
 import { getAnalyticsChoice, setAnalyticsChoice } from '../lib/analytics'
 
 defineProps({
@@ -31,10 +32,40 @@ defineProps({
 
 // Shown only while no choice is stored
 const visible = ref(getAnalyticsChoice() === null)
+const bannerEl = ref(null)
+let resizeObserver = null
+
+// T-0636: the banner floats over the bottom of the page. While it is open, the page gets
+// extra room at the bottom (--consent-room, used in theme.css) of the banner's height + 8 px,
+// so the last buttons of a screen can be scrolled out from under it. Before, e.g. the
+// Triggers and Reframe exercises on Today could not be tapped until the question was answered.
+function setRoom() {
+  const room = visible.value && bannerEl.value ? bannerEl.value.offsetHeight + 8 : 0
+  document.documentElement.style.setProperty('--consent-room', `${room}px`)
+}
+
+function clearRoom() {
+  resizeObserver?.disconnect()
+  resizeObserver = null
+  document.documentElement.style.removeProperty('--consent-room')
+}
+
+onMounted(() => {
+  if (!visible.value) return
+  setRoom()
+  // The banner's height changes with the screen width (e.g. a phone turned sideways)
+  if (typeof ResizeObserver !== 'undefined') {
+    resizeObserver = new ResizeObserver(setRoom)
+    resizeObserver.observe(bannerEl.value)
+  }
+})
+
+onBeforeUnmount(clearRoom)
 
 function choose(choice) {
   setAnalyticsChoice(choice)
   visible.value = false
+  clearRoom()
 }
 </script>
 

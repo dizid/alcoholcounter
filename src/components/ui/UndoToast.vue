@@ -17,9 +17,10 @@ defineEmits(['undo'])
 </script>
 
 <style scoped>
+/* + --consent-room: above the Google Analytics question while it is open (T-0636; it hid "Undo") */
 .toast {
   position: fixed; left: 20px; right: 20px; z-index: 30; max-width: 520px; margin: 0 auto;
-  bottom: calc(var(--nav-h) + var(--safe) + 12px); min-height: 48px;
+  bottom: calc(var(--nav-h) + var(--safe) + 12px + var(--consent-room, 0px)); min-height: 48px;
   background: var(--surface-2); border-radius: 14px; padding: 0 16px;
   display: flex; justify-content: space-between; align-items: center; gap: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, .45); font-size: 14px;

@@ -251,9 +251,10 @@ onBeforeUnmount(() => clearTimeout(toastTimer))
 .empty { padding: 16px 0; display: grid; gap: 16px; }
 .empty .free { color: var(--free); font-weight: 600; }
 .empty-buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+/* + --consent-room: floats above the Google Analytics question while it is open (T-0636; it hid the button) */
 .fab {
   position: fixed; right: max(20px, calc(50% - 260px)); z-index: 15;
-  bottom: calc(var(--nav-h) + var(--safe) + 16px); height: 48px; padding: 0 20px; border-radius: 999px;
+  bottom: calc(var(--nav-h) + var(--safe) + 16px + var(--consent-room, 0px)); height: 48px; padding: 0 20px; border-radius: 999px;
   background: var(--drink); color: var(--on-drink); font-weight: 600; display: flex; align-items: center; gap: 6px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, .35);
 }
